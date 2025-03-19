@@ -13,7 +13,7 @@ tags:
 - name: RelatedPerson
 - name: 4.0.1
 paths:
-  /:
+  /fhir/r4/RelatedPerson:
     get:
       tags:
       - GET
@@ -227,7 +227,21 @@ paths:
       security:
       - default: []
       x-auth-type: Application & Application User
-  /{id}:
+    post:
+      summary: Create a new RelatedPerson
+      tags:
+        - POST
+        - RelatedPerson
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: "#/components/schemas/RelatedPerson"
+      responses:
+        "201":
+          description: Successfully created Claim
+  /fhir/r4/RelatedPerson/{id}:
     get:
       tags:
       - GET

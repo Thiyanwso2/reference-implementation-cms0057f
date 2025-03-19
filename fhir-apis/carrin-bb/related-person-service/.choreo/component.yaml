@@ -3,7 +3,7 @@ endpoints:
     - name: carinbb200-relatedperson-api
       displayName: carinbb200 RelatedPerson API
       service:
-        basePath: /RelatedPerson
+        basePath: /
         port: 9090
       type: REST
       networkVisibilities:
