@@ -240,7 +240,7 @@ paths:
               $ref: "#/components/schemas/RelatedPerson"
       responses:
         "201":
-          description: Successfully created Claim
+          description: Successfully created RelatedPerson
   /fhir/r4/RelatedPerson/{id}:
     get:
       tags:

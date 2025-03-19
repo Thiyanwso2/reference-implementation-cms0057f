@@ -33,7 +33,7 @@ service / on new fhirr4:Listener(9090, apiConfig) {
 
     // Read the current state of single resource based on its id.
     isolated resource function get fhir/r4/ExplanationOfBenefit/[string id] (r4:FHIRContext fhirContext) returns ExplanationOfBenefit|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return getById(id);
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -43,12 +43,15 @@ service / on new fhirr4:Listener(9090, apiConfig) {
 
     // Search for resources based on a set of criteria.
     isolated resource function get fhir/r4/ExplanationOfBenefit (r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        r4:Bundle searchResult = check search(getQueryParamsMap(fhirContext.getRequestSearchParameters()));
+        return searchResult;
     }
 
     // Create a new resource.
     isolated resource function post fhir/r4/ExplanationOfBenefit (r4:FHIRContext fhirContext, ExplanationOfBenefit procedure) returns ExplanationOfBenefit|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        ExplanationOfBenefit eob = check create(procedure.toJson());
+
+        return eob;
     }
 
     // Update the current state of a resource completely.

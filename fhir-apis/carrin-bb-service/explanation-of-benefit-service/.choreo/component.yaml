@@ -3,7 +3,7 @@ endpoints:
     - name: carinbb200-explanationofbenefit-api
       displayName: carinbb200 ExplanationOfBenefit API
       service:
-        basePath: /ExplanationOfBenefit
+        basePath: /
         port: 9090
       type: REST
       networkVisibilities:
