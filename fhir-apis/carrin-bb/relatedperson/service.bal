@@ -33,7 +33,7 @@ service / on new fhirr4:Listener(9090, apiConfig) {
 
     // Read the current state of single resource based on its id.
     isolated resource function get fhir/r4/RelatedPerson/[string id] (r4:FHIRContext fhirContext) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        return getById(id);
     }
 
     // Read the state of a specific version of a resource based on its id.
@@ -42,13 +42,16 @@ service / on new fhirr4:Listener(9090, apiConfig) {
     }
 
     // Search for resources based on a set of criteria.
-    isolated resource function get fhir/r4/RelatedPerson (r4:FHIRContext fhirContext) returns r4:Bundle|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+    isolated resource function get fhir/r4/RelatedPerson(r4:FHIRContext fhirContext) returns r4:FHIRError|error|r4:Bundle {
+        r4:Bundle searchResult = check search("RelatedPerson", getQueryParamsMap(fhirContext.getRequestSearchParameters()));
+        return searchResult;
     }
 
     // Create a new resource.
     isolated resource function post fhir/r4/RelatedPerson (r4:FHIRContext fhirContext, RelatedPerson procedure) returns RelatedPerson|r4:OperationOutcome|r4:FHIRError {
-        return r4:createFHIRError("Not implemented", r4:ERROR, r4:INFORMATIONAL, httpStatusCode = http:STATUS_NOT_IMPLEMENTED);
+        carinbb200:C4BBRelatedPerson relatedPerson = check create(procedure.toJson());
+
+        return relatedPerson;
     }
 
     // Update the current state of a resource completely.
