@@ -43,7 +43,7 @@ service / on new fhirr4:Listener(9090, apiConfig) {
 
     // Search for resources based on a set of criteria.
     isolated resource function get fhir/r4/RelatedPerson(r4:FHIRContext fhirContext) returns r4:FHIRError|error|r4:Bundle {
-        r4:Bundle searchResult = check search("RelatedPerson", getQueryParamsMap(fhirContext.getRequestSearchParameters()));
+        r4:Bundle searchResult = check search(getQueryParamsMap(fhirContext.getRequestSearchParameters()));
         return searchResult;
     }
 

@@ -38,7 +38,7 @@ public isolated function getById(string id) returns r4:FHIRError|carinbb200:C4BB
     return r4:createFHIRError(string `Cannot find a Patient resource with id: ${id}`, r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_NOT_FOUND);
 }
 
-public isolated function search(string 'resource, map<string[]>? searchParameters = ()) returns r4:FHIRError|r4:Bundle {
+public isolated function search(map<string[]>? searchParameters = ()) returns r4:FHIRError|r4:Bundle {
     r4:Bundle bundle = {
         'type: "collection"
     };
