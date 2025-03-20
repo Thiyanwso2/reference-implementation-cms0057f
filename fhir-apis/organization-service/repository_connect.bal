@@ -23,7 +23,7 @@ import ballerinax/health.fhir.r4.uscore501;
 // isolated fhir:FHIRConnector fhirConnectorObj = check new (ehrSystemConfig);
 
 isolated uscore501:USCoreOrganizationProfile[] organizations = [];
-isolated int createOperationNextId = 50;
+isolated int createOperationNextId = 56;
 
 public isolated function create(uscore501:USCoreOrganizationProfile organization) returns r4:FHIRError|uscore501:USCoreOrganizationProfile {
     uscore501:USCoreOrganizationProfile|error claim = parser:parseWithValidation(organization.toJson(), uscore501:USCoreOrganizationProfile).ensureType();
