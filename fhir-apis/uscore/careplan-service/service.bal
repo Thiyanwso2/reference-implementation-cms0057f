@@ -18,12 +18,12 @@
 import ballerina/http;
 import ballerinax/health.fhir.r4;
 import ballerinax/health.fhirr4;
-import ballerinax/health.fhir.r4.uscore501;
+import ballerinax/health.fhir.r4.uscore700;
 
 # Generic type to wrap all implemented profiles.
 # Add required profile types here.
 # public type CarePlan r4:CarePlan|<other_CarePlan_Profile>;
-public type CarePlan uscore501:USCoreCarePlanProfile;
+public type CarePlan uscore700:USCoreCarePlanProfile;
 
 # initialize source system endpoint here
 

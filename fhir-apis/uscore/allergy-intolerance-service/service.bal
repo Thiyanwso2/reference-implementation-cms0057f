@@ -18,12 +18,12 @@
 import ballerina/http;
 import ballerinax/health.fhir.r4;
 import ballerinax/health.fhirr4;
-import ballerinax/health.fhir.r4.uscore501;
+import ballerinax/health.fhir.r4.uscore700;
 
 # Generic type to wrap all implemented profiles.
 # Add required profile types here.
 # public type AllergyIntolerance r4:AllergyIntolerance|<other_AllergyIntolerance_Profile>;
-public type AllergyIntolerance uscore501:USCoreAllergyIntolerance;
+public type AllergyIntolerance uscore700:USCoreAllergyIntolerance;
 
 # initialize source system endpoint here
 

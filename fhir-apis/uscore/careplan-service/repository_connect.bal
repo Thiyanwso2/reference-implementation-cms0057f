@@ -1,13 +1,13 @@
 import ballerina/http;
 import ballerinax/health.fhir.r4;
 import ballerinax/health.fhir.r4.parser;
-import ballerinax/health.fhir.r4.uscore501;
+import ballerinax/health.fhir.r4.uscore700;
 
-isolated uscore501:USCoreCarePlanProfile[] carePlans = [];
+isolated uscore700:USCoreCarePlanProfile[] carePlans = [];
 isolated int createOperationNextId = 12344;
 
-public isolated function create(json payload) returns r4:FHIRError|uscore501:USCoreCarePlanProfile {
-    uscore501:USCoreCarePlanProfile|error carePlan = parser:parseWithValidation(payload, uscore501:USCoreCarePlanProfile).ensureType();
+public isolated function create(json payload) returns r4:FHIRError|uscore700:USCoreCarePlanProfile {
+    uscore700:USCoreCarePlanProfile|error carePlan = parser:parseWithValidation(payload, uscore700:USCoreCarePlanProfile).ensureType();
 
     if carePlan is error {
         return r4:createFHIRError(carePlan.message(), r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -25,7 +25,7 @@ public isolated function create(json payload) returns r4:FHIRError|uscore501:USC
     }
 }
 
-public isolated function getById(string id) returns r4:FHIRError|uscore501:USCoreCarePlanProfile {
+public isolated function getById(string id) returns r4:FHIRError|uscore700:USCoreCarePlanProfile {
     lock {
         foreach var item in carePlans {
             string result = item.id ?: "";
@@ -47,7 +47,7 @@ public isolated function search(map<string[]>? searchParameters = ()) returns r4
         foreach var 'key in searchParameters.keys() {
             match 'key {
                 "_id" => {
-                    uscore501:USCoreCarePlanProfile byId = check getById(searchParameters.get('key)[0]);
+                    uscore700:USCoreCarePlanProfile byId = check getById(searchParameters.get('key)[0]);
                     bundle.entry = [
                         {
                             'resource: byId
@@ -105,7 +105,7 @@ function init() returns error? {
                 "display": "Amy Shaw"
             }
         };
-        uscore501:USCoreCarePlanProfile carePlan = check parser:parse(carePlanJson, uscore501:USCoreCarePlanProfile).ensureType();
+        uscore700:USCoreCarePlanProfile carePlan = check parser:parse(carePlanJson, uscore700:USCoreCarePlanProfile).ensureType();
         carePlans.push(carePlan.clone());
     }
 }

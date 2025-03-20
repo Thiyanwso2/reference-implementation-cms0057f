@@ -1,13 +1,13 @@
 import ballerina/http;
 import ballerinax/health.fhir.r4;
 import ballerinax/health.fhir.r4.parser;
-import ballerinax/health.fhir.r4.uscore501;
+import ballerinax/health.fhir.r4.uscore700;
 
-isolated uscore501:USCoreAllergyIntolerance[] allergyIntolerances = [];
+isolated uscore700:USCoreAllergyIntolerance[] allergyIntolerances = [];
 isolated int createOperationNextId = 12344;
 
-public isolated function create(json payload) returns r4:FHIRError|uscore501:USCoreAllergyIntolerance {
-    uscore501:USCoreAllergyIntolerance|error allergyIntolerance = parser:parseWithValidation(payload, uscore501:USCoreAllergyIntolerance).ensureType();
+public isolated function create(json payload) returns r4:FHIRError|uscore700:USCoreAllergyIntolerance {
+    uscore700:USCoreAllergyIntolerance|error allergyIntolerance = parser:parseWithValidation(payload, uscore700:USCoreAllergyIntolerance).ensureType();
 
     if allergyIntolerance is error {
         return r4:createFHIRError(allergyIntolerance.message(), r4:ERROR, r4:INVALID, httpStatusCode = http:STATUS_BAD_REQUEST);
@@ -25,7 +25,7 @@ public isolated function create(json payload) returns r4:FHIRError|uscore501:USC
     }
 }
 
-public isolated function getById(string id) returns r4:FHIRError|uscore501:USCoreAllergyIntolerance {
+public isolated function getById(string id) returns r4:FHIRError|uscore700:USCoreAllergyIntolerance {
     lock {
         foreach var item in allergyIntolerances {
             string result = item.id ?: "";
@@ -47,7 +47,7 @@ public isolated function search(map<string[]>? searchParameters = ()) returns r4
         foreach var 'key in searchParameters.keys() {
             match 'key {
                 "_id" => {
-                    uscore501:USCoreAllergyIntolerance byId = check getById(searchParameters.get('key)[0]);
+                    uscore700:USCoreAllergyIntolerance byId = check getById(searchParameters.get('key)[0]);
                     bundle.entry = [
                         {
                             'resource: byId
@@ -140,7 +140,7 @@ function init() returns error? {
                 }
             ]
         };
-        uscore501:USCoreAllergyIntolerance allergyIntolerance = check parser:parse(allergyIntoleranceJson, uscore501:USCoreAllergyIntolerance).ensureType();
+        uscore700:USCoreAllergyIntolerance allergyIntolerance = check parser:parse(allergyIntoleranceJson, uscore700:USCoreAllergyIntolerance).ensureType();
         allergyIntolerances.push(allergyIntolerance.clone());
     }
 }
