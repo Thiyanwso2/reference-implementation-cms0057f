@@ -1,4 +1,4 @@
-# Observation Template
+# Location Template
 
 ## Template Overview
 
@@ -8,15 +8,15 @@ This template provides a boilerplate code for rapid implementation of FHIR APIs 
 | -------------------- | ------- |
 | FHIR version         | r4 |
 | Implementation Guide | [http://hl7.org/fhir/us/core](http://hl7.org/fhir/us/core) |
-| Profile URL          |[http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-test](http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-test)|
+| Profile URL          |[http://hl7.org/fhir/us/core/StructureDefinition/us-core-location](http://hl7.org/fhir/us/core/StructureDefinition/us-core-location)|
 
 ### Dependency List
 
 - ballerinax/health.fhir.r4
 - ballerinax/health.fhirr4
-- ballerinax/health.fhir.r4.uscore501
+- ballerinax/health.fhir.r4.uscore700
 
-This template includes a Ballerina service for Observation FHIR resource with following FHIR interactions.
+This template includes a Ballerina service for Location FHIR resource with following FHIR interactions.
 - READ
 - VREAD
 - SEARCH
@@ -31,18 +31,18 @@ This template includes a Ballerina service for Observation FHIR resource with fo
 
 Pull the template from central
 
-    ` bal new -t healthcare/health.fhir.r4.uscore501.observation ObservationAPI `
+    ` bal new -t healthcare/health.fhir.r4.uscore700.location LocationAPI `
 
 ## Run the template
 
 - Run the Ballerina project created by the service template by executing bal run from the root.
 - Once successfully executed, Listener will be started at port 9090. Then you need to invoke the service using the following curl command
-    ` $ curl http://localhost:9090/fhir/r4/Observation `
+    ` $ curl http://localhost:9090/fhir/r4/Location `
 - Now service will be invoked and returns an Operation Outcome, until the code template is implemented completely.
 
 ## Adding a Custom Profile/Combination of Profiles
 
-- Add profile type to the aggregated resource type. Eg: `public type Observation r4:Observation|<Other_Observation_Profile>;`.
+- Add profile type to the aggregated resource type. Eg: `public type Location r4:Location|<Other_Location_Profile>;`.
     - Add the new profile URL in `api_config.bal` file.
     - Add as a string inside the `profiles` array.
-    - Eg: `profiles: ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-test", "new_profile_url"]`
+    - Eg: `profiles: ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-location", "new_profile_url"]`
