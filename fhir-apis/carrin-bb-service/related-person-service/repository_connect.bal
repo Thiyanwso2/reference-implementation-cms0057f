@@ -44,21 +44,6 @@ public isolated function search(map<string[]>? searchParameters = ()) returns r4
     };
 
     if searchParameters is map<string[]> {
-        if searchParameters.keys().count() == 1 {
-            lock {
-                r4:BundleEntry[] bundleEntries = [];
-                foreach var item in relatedPersons {
-                    r4:BundleEntry bundleEntry = {
-                        'resource: item
-                    };
-                    bundleEntries.push(bundleEntry);
-                }
-                r4:Bundle BundleClone = bundle.clone();
-                BundleClone.entry = bundleEntries;
-                return BundleClone.clone();
-            }
-        }
-
         foreach var 'key in searchParameters.keys() {
             match 'key {
                 "_id" => {
@@ -77,7 +62,18 @@ public isolated function search(map<string[]>? searchParameters = ()) returns r4
         }
     }
 
-    return bundle;
+    lock {
+        r4:BundleEntry[] bundleEntries = [];
+        foreach var item in relatedPersons {
+            r4:BundleEntry bundleEntry = {
+                'resource: item
+            };
+            bundleEntries.push(bundleEntry);
+        }
+        r4:Bundle cloneBundle = bundle.clone();
+        cloneBundle.entry = bundleEntries;
+        return cloneBundle.clone();
+    }
 }
 
 function init() returns error? {
