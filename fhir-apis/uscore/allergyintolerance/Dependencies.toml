@@ -98,9 +98,6 @@ dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.value"}
 ]
-modules = [
-	{org = "ballerina", packageName = "io", moduleName = "io"}
-]
 
 [[package]]
 org = "ballerina"
@@ -393,7 +390,6 @@ name = "health.fhir.r4.uscore501.allergyintolerance"
 version = "1.0.0"
 dependencies = [
 	{org = "ballerina", name = "http"},
-	{org = "ballerina", name = "io"},
 	{org = "ballerinax", name = "health.fhir.r4"},
 	{org = "ballerinax", name = "health.fhir.r4.parser"},
 	{org = "ballerinax", name = "health.fhir.r4.uscore501"},
