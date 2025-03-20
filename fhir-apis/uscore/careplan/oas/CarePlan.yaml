@@ -13,7 +13,7 @@ tags:
 - name: CarePlan
 - name: 4.0.1
 paths:
-  /:
+  /fhir/r4/CarePlan:
     get:
       tags:
       - GET
@@ -276,7 +276,21 @@ paths:
       security:
       - default: []
       x-auth-type: Application & Application User
-  /{id}:
+    post:
+      summary: Create a new US Core CarePlan
+      tags:
+        - POST
+        - AllergyIntolerance
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: "#/components/schemas/CarePlan"
+      responses:
+        "201":
+          description: Successfully created US Core CarePlan
+  /fhir/r4/CarePlan/{id}:
     get:
       tags:
       - GET
