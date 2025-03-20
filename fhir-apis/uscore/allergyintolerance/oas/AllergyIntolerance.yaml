@@ -13,7 +13,7 @@ tags:
 - name: AllergyIntolerance
 - name: 4.0.1
 paths:
-  /:
+  /fhir/r4/AllergyIntolerance:
     get:
       tags:
       - GET
@@ -262,7 +262,21 @@ paths:
       security:
       - default: []
       x-auth-type: Application & Application User
-  /{id}:
+    post:
+      summary: Create a new US Core AllergyIntolerance
+      tags:
+        - POST
+        - AllergyIntolerance
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: "#/components/schemas/AllergyIntolerance"
+      responses:
+        "201":
+          description: Successfully created US Core AllergyIntolerance
+  /fhir/r4/AllergyIntolerance/{id}:
     get:
       tags:
       - GET
