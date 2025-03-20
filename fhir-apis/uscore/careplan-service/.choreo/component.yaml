@@ -1,7 +1,7 @@
 schemaVersion: 1.1
 endpoints:
-    - name: uscore501-careplan-api
-      displayName: uscore501 CarePlan API
+    - name: uscore700-careplan-api
+      displayName: uscore700 CarePlan API
       service:
         basePath: /
         port: 9090
