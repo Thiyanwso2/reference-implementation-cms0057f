@@ -3,7 +3,7 @@ endpoints:
     - name: uscore501-careteam-api
       displayName: uscore501 CareTeam API
       service:
-        basePath: /CareTeam
+        basePath: /
         port: 9090
       type: REST
       networkVisibilities:

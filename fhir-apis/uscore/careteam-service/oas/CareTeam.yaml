@@ -13,7 +13,7 @@ tags:
 - name: CareTeam
 - name: 4.0.1
 paths:
-  /:
+  /fhir/r4/CareTeam:
     get:
       tags:
       - GET
@@ -177,7 +177,21 @@ paths:
       security:
       - default: []
       x-auth-type: Application & Application User
-  /{id}:
+    post:
+      summary: Create a new US Core CareTeam
+      tags:
+        - POST
+        - CareTeam
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: "#/components/schemas/CareTeam"
+      responses:
+        "201":
+          description: Successfully created US Core CareTeam
+  /fhir/r4/CareTeam/{id}:
     get:
       tags:
       - GET

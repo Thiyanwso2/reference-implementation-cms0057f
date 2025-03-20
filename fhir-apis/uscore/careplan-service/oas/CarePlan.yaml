@@ -280,7 +280,7 @@ paths:
       summary: Create a new US Core CarePlan
       tags:
         - POST
-        - AllergyIntolerance
+        - CarePlan
       requestBody:
         required: true
         content:
