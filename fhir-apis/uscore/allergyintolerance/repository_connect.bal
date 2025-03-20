@@ -62,7 +62,18 @@ public isolated function search(map<string[]>? searchParameters = ()) returns r4
         }
     }
 
-    return bundle;
+    lock {
+        r4:BundleEntry[] bundleEntries = [];
+        foreach var item in allergyIntolerances {
+            r4:BundleEntry bundleEntry = {
+                'resource: item
+            };
+            bundleEntries.push(bundleEntry);
+        }
+        r4:Bundle cloneBundle = bundle.clone();
+        cloneBundle.entry = bundleEntries;
+        return cloneBundle.clone();
+    }
 }
 
 function init() returns error? {
