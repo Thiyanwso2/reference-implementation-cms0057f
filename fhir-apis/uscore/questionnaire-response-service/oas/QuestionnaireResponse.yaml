@@ -13,7 +13,7 @@ tags:
 - name: QuestionnaireResponse
 - name: 4.0.1
 paths:
-  /:
+  /fhir/r4/QuestionnaireResponse:
     get:
       tags:
       - GET
@@ -125,7 +125,21 @@ paths:
       security:
       - default: []
       x-auth-type: Application & Application User
-  /{id}:
+    post:
+      summary: Create a new US Core QuestionnaireResponse
+      tags:
+        - POST
+        - QuestionnaireResponse
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: "#/components/schemas/QuestionnaireResponse"
+      responses:
+        "201":
+          description: Successfully created US Core QuestionnaireResponse
+  /fhir/r4/QuestionnaireResponse/{id}:
     get:
       tags:
       - GET
