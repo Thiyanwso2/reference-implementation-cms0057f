@@ -14,7 +14,7 @@ This template provides a boilerplate code for rapid implementation of FHIR APIs 
 
 - ballerinax/health.fhir.r4
 - ballerinax/health.fhirr4
-- ballerinax/health.fhir.r4.uscore501
+- ballerinax/health.fhir.r4.uscore700
 
 This template includes a Ballerina service for Condition FHIR resource with following FHIR interactions.
 - READ
@@ -31,7 +31,7 @@ This template includes a Ballerina service for Condition FHIR resource with foll
 
 Pull the template from central
 
-    ` bal new -t healthcare/health.fhir.r4.uscore501.condition ConditionAPI `
+    ` bal new -t healthcare/health.fhir.r4.uscore700.condition ConditionAPI `
 
 ## Run the template
 

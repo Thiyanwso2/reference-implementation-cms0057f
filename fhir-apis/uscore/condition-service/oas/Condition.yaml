@@ -13,7 +13,7 @@ tags:
 - name: Condition
 - name: 4.0.1
 paths:
-  /:
+  /fhir/r4/Condition:
     get:
       tags:
       - GET
@@ -280,7 +280,21 @@ paths:
       security:
       - default: []
       x-auth-type: Application & Application User
-  /{id}:
+    post:
+      summary: Create a new US Core Condition
+      tags:
+        - POST
+        - Condition
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: "#/components/schemas/Condition"
+      responses:
+        "201":
+          description: Successfully created US Core Condition
+  /fhir/r4/Condition/{id}:
     get:
       tags:
       - GET
