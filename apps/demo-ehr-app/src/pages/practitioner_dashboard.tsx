@@ -27,6 +27,8 @@ import Form from "react-bootstrap/Form";
 import { useAuth } from "../components/AuthProvider";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Alert, Snackbar } from "@mui/material";
+import { resetCdsResponse } from "../redux/cdsResponseSlice";
+import { resetCdsRequest } from "../redux/cdsRequestSlice";
 
 function ServiceCardList({ services, expanded }: ServiceCardListProps) {
   return (
@@ -151,6 +153,8 @@ function PractitionerDashBoard() {
   const selectedPatientId = useSelector(
     (state: any) => state.patient.selectedPatientId
   );
+  const dispatch = useDispatch();
+
   let currentPatient = PATIENT_DETAILS.find(
     (patient) => patient.id === selectedPatientId
   );
@@ -158,6 +162,9 @@ function PractitionerDashBoard() {
   if (!currentPatient) {
     currentPatient = PATIENT_DETAILS[0];
   }
+
+  dispatch(resetCdsResponse());
+  dispatch(resetCdsRequest());
 
   return isAuthenticated ? (
     <div style={{ marginLeft: 50, marginBottom: 50 }}>
@@ -171,7 +178,7 @@ function PractitionerDashBoard() {
         }}
       ></div>
       <br />
-      <div className="page-heading">HealthCare HQ Services</div>
+      <div className="page-heading">E-Health Services</div>
       <div style={{ height: "5vh" }}>
         <ServiceCardList services={SERVICE_CARD_DETAILS} expanded={expanded} />
       </div>

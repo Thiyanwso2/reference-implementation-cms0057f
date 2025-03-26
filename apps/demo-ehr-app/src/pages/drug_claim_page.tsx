@@ -31,6 +31,8 @@ import { useAuth } from "../components/AuthProvider";
 import { Navigate } from "react-router-dom";
 import { Alert, Snackbar } from "@mui/material";
 import { selectPatient } from "../redux/patientSlice";
+import Lottie from "react-lottie";
+import successAnimation from "../animations/success-animation.json"; // Add your animation JSON file here
 
 const ClaimForm = () => {
   const dispatch = useDispatch();
@@ -43,11 +45,14 @@ const ClaimForm = () => {
     "error" | "warning" | "info" | "success"
   >("info");
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
 
   const savedPatientId = localStorage.getItem("selectedPatientId");
-    if (savedPatientId) {
-      dispatch(selectPatient(savedPatientId));
-    }
+  const loggedUser = useSelector((state: any) => state.loggedUser);
+
+  if (savedPatientId) {
+    dispatch(selectPatient(savedPatientId));
+  }
 
   const selectedPatientId = useSelector(
     (state: any) => state.patient.selectedPatientId
@@ -92,7 +97,7 @@ const ClaimForm = () => {
   };
 
   const handleSubmit = () => {
-    console.log("Form data submitted:", formData);
+    const Config = window.Config;
     const payload = CLAIM_REQUEST_BODY(
       formData.patient,
       formData.provider,
@@ -105,11 +110,14 @@ const ClaimForm = () => {
       formData.unitPrice
     );
     console.log("payload", payload);
-    dispatch(updateRequest(payload));
-    dispatch(updateRequestMethod("POST"));
-    dispatch(updateRequestUrl("/fhir/r4/Claim/$submit"));
     dispatch(resetCdsResponse());
-    const Config = window.Config;
+
+    dispatch(updateRequestMethod("POST"));
+    dispatch(updateRequestUrl(Config.demoBaseUrl + Config.claim_submit));
+    dispatch(updateRequest(payload));
+
+    
+
     axios
       .post(Config.claim_submit, payload, {
         headers: {
@@ -118,8 +126,19 @@ const ClaimForm = () => {
       })
       .then((response) => {
         if (response.status >= 200 && response.status < 300) {
-          setAlertMessage("Claim submitted successfully");
-          setAlertSeverity("success");
+          console.log("Claim submitted successfully:", response.data);
+          if (
+            response.data.parameter[0].resource.outcome &&
+            response.data.parameter[0].resource.outcome === "complete"
+          ) {
+            setAlertMessage("Prior Authorization Status: Completed");
+            setAlertSeverity("success");
+            setShowSuccessAnimation(true);
+          } else {
+            console.log("Prior Authorization error:", response.data.issue);
+            setAlertMessage("Prior Authorization");
+            setAlertSeverity("error");
+          }
         } else {
           setAlertMessage("Error submitting claim");
           setAlertSeverity("error");
@@ -151,6 +170,15 @@ const ClaimForm = () => {
     setOpenSnackbar(false);
   };
 
+  const defaultOptions = {
+    loop: false,
+    autoplay: true,
+    animationData: successAnimation,
+    rendererSettings: {
+      preserveAspectRatio: "xMidYMid slice",
+    },
+  };
+
   return (
     <Card style={{ marginTop: "30px", padding: "20px" }}>
       <Card.Body>
@@ -178,10 +206,11 @@ const ClaimForm = () => {
               controlId="provider"
               style={{ marginTop: "20px", flex: "1 1 100%" }}
             >
-              <Form.Label>Provider</Form.Label>
+              <Form.Label>Practitioner</Form.Label>
               <Form.Control
                 type="text"
-                value={formData.provider}
+                // value={formData.provider}
+                value={loggedUser?.first_name + " " + loggedUser?.last_name}
                 onChange={handleChange}
                 disabled
               />
@@ -193,7 +222,7 @@ const ClaimForm = () => {
               <Form.Label>Insurer</Form.Label>
               <Form.Control
                 type="text"
-                value={formData.insurer}
+                value="UnitedCare Health Insurance"
                 onChange={handleChange}
                 disabled
               />
@@ -207,19 +236,31 @@ const ClaimForm = () => {
             }}
           >
             <Form.Group
+              controlId="category"
+              style={{ marginTop: "20px", flex: "1 1 100%" }}
+            >
+              <Form.Label>Category</Form.Label>
+              <Form.Control
+                type="text"
+                value={formData.category}
+                onChange={handleChange}
+                disabled
+              />
+            </Form.Group>
+            <Form.Group
               controlId="use"
               style={{ marginTop: "20px", flex: "1 1 100%" }}
             >
               <Form.Label>Use</Form.Label>
               <Form.Control
                 type="text"
-                value={formData.use}
+                value={formData.use.toLocaleUpperCase()}
                 onChange={handleChange}
                 disabled
               />
             </Form.Group>
 
-            <Form.Group
+            {/* <Form.Group
               controlId="supportingInfo"
               style={{ marginTop: "20px", flex: "1 1 100%" }}
             >
@@ -230,18 +271,8 @@ const ClaimForm = () => {
                 onChange={handleChange}
                 disabled
               />
-            </Form.Group>
+            </Form.Group> */}
           </div>
-
-          <Form.Group controlId="category" style={{ marginTop: "20px" }}>
-            <Form.Label>Category</Form.Label>
-            <Form.Control
-              type="text"
-              value={formData.category}
-              onChange={handleChange}
-              disabled
-            />
-          </Form.Group>
 
           <Form.Group controlId="medication" style={{ marginTop: "20px" }}>
             <Form.Label>Product/Service</Form.Label>
@@ -285,13 +316,22 @@ const ClaimForm = () => {
               />
             </Form.Group>
           </div>
-          <Button
-            variant="success"
-            style={{ marginTop: "30px", marginRight: "20px", float: "right" }}
-            onClick={handleSubmit}
-          >
-            Submit Claim
-          </Button>
+          {showSuccessAnimation && (
+            <div style={{ textAlign: "center", marginTop: "50px" }}>
+              <Lottie options={defaultOptions} height={70} width={70} />
+              <br />
+              <h5>Prior Authorization Approved.</h5>
+            </div>
+          )}
+          {!showSuccessAnimation && (
+            <Button
+              variant="success"
+              style={{ marginTop: "30px", marginRight: "20px", float: "right" }}
+              onClick={handleSubmit}
+            >
+              Submit Claim
+            </Button>
+          )}
         </Form>
       </Card.Body>
       <Snackbar
@@ -310,12 +350,7 @@ const ClaimForm = () => {
 
 export default function DrugClaimPage() {
   const { isAuthenticated } = useAuth();
-  const medicationFormData = useSelector(
-    (state: { medicationFormData: { medication: string; quantity: string } }) =>
-      state.medicationFormData
-  );
 
-  console.log("medicationFormData", medicationFormData);
   return isAuthenticated ? (
     <div style={{ marginLeft: 50, marginBottom: 50 }}>
       <div className="page-heading">Claim Submission</div>

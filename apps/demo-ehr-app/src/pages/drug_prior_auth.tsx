@@ -90,6 +90,10 @@ const QuestionnniarForm = ({
     dispatch(resetCdsResponse());
     // Fetch the questionnaire data from the API
     const Config = window.Config;
+    dispatch(updateRequestUrl(Config.demoBaseUrl + Config.questionnaire_package));
+    dispatch(updateRequestMethod("POST"));
+    dispatch(updateRequest(requestBody));
+
     axios
       .post(Config.questionnaire_package, requestBody, {
         headers: {
@@ -110,12 +114,6 @@ const QuestionnniarForm = ({
         setQuestions(
           questionnaire.parameter[0].resource.entry[0].resource.item || []
         );
-
-        dispatch(
-          updateRequestUrl("/fhir/r4/Questionnaire/$questionnaire-package")
-        );
-        dispatch(updateRequestMethod("POST"));
-        dispatch(updateRequest(requestBody));
 
         dispatch(
           updateCdsResponse({
@@ -200,14 +198,17 @@ const QuestionnniarForm = ({
       }[];
     }[];
   }) => {
+    const Config = window.Config;
     dispatch(resetCdsRequest());
     dispatch(resetCdsResponse());
     dispatch(updateRequest(questionnaireResponse));
-    dispatch(updateRequestUrl("/fhir/r4/QuestionnaireResponse"));
+    dispatch(
+      updateRequestUrl(Config.demoBaseUrl + Config.questionnaire_response)
+    );
     dispatch(updateRequestMethod("POST"));
 
     // Submit the questionnaire response to the API
-    const Config = window.Config;
+
     axios
       .post(Config.questionnaire_response, questionnaireResponse, {
         headers: {
@@ -443,6 +444,7 @@ const PrescribedForm = () => {
 };
 
 const DetailsDiv = ({ questionnaireId }: { questionnaireId: string }) => {
+  console.log("questionnaireId: ", questionnaireId);
   const dispatch = useDispatch();
   const savedPatientId = localStorage.getItem("selectedPatientId");
   if (savedPatientId) {
@@ -475,13 +477,13 @@ const DetailsDiv = ({ questionnaireId }: { questionnaireId: string }) => {
         <Form.Label>Patient ID</Form.Label>
         <Form.Control type="text" value={currentPatient?.id} disabled />
       </Form.Group>
-      <Form.Group
+      {/* <Form.Group
         controlId="formPatientName"
         style={{ marginTop: "20px", flex: "1 1 100%" }}
       >
         <Form.Label>Questionnaire ID</Form.Label>
         <Form.Control type="text" value={questionnaireId} disabled />
-      </Form.Group>
+      </Form.Group> */}
     </div>
   );
 };
