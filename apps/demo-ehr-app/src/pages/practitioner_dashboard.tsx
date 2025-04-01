@@ -19,7 +19,7 @@ import { SERVICE_CARD_DETAILS, PATIENT_DETAILS } from "../constants/data";
 import Button from "@mui/material/Button";
 import { ServiceCardListProps } from "../components/interfaces/card";
 import MultiActionAreaCard from "../components/serviceCard";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ExpandedContext } from "../utils/expanded_context";
 import { useSelector, useDispatch } from "react-redux";
 import { dismissPatient, selectPatient } from "../redux/patientSlice";
@@ -27,8 +27,7 @@ import Form from "react-bootstrap/Form";
 import { useAuth } from "../components/AuthProvider";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Alert, Snackbar } from "@mui/material";
-import { resetCdsResponse } from "../redux/cdsResponseSlice";
-import { resetCdsRequest } from "../redux/cdsRequestSlice";
+import { updateIsProcess } from "../redux/currentStateSlice";
 
 function ServiceCardList({ services, expanded }: ServiceCardListProps) {
   return (
@@ -149,11 +148,15 @@ const DetailsDiv = () => {
 
 function PractitionerDashBoard() {
   const { isAuthenticated } = useAuth();
+  const dispatch = useDispatch();
   const { expanded } = useContext(ExpandedContext);
   const selectedPatientId = useSelector(
     (state: any) => state.patient.selectedPatientId
   );
-  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(updateIsProcess(false));
+  }, []);
 
   let currentPatient = PATIENT_DETAILS.find(
     (patient) => patient.id === selectedPatientId
@@ -162,9 +165,6 @@ function PractitionerDashBoard() {
   if (!currentPatient) {
     currentPatient = PATIENT_DETAILS[0];
   }
-
-  dispatch(resetCdsResponse());
-  dispatch(resetCdsRequest());
 
   return isAuthenticated ? (
     <div style={{ marginLeft: 50, marginBottom: 50 }}>

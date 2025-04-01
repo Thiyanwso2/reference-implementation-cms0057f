@@ -26,10 +26,12 @@ import Button from "react-bootstrap/Button";
 import { useEffect } from "react";
 import axios from "axios";
 import {
-  updateRequestMethod,
-  updateRequestUrl,
-} from "../redux/cdsRequestSlice";
-import { updateCdsResponse, resetCdsResponse } from "../redux/cdsResponseSlice";
+  resetCurrentRequest,
+  updateCurrentRequestMethod,
+  updateCurrentRequestUrl,
+  updateCurrentResponse,
+  updateIsProcess,
+} from "../redux/currentStateSlice";
 
 function PatientEncounter() {
   const { isAuthenticated } = useAuth();
@@ -44,14 +46,18 @@ function PatientEncounter() {
   );
 
   useEffect(() => {
+    dispatch(updateIsProcess(false));
+  }, []);
+
+  useEffect(() => {
     const fetchPatientDetails = async () => {
-      dispatch(resetCdsResponse());
-      dispatch(updateRequestMethod("GET"));
-      dispatch(updateRequestUrl(Config.demoBaseUrl + Config.patient));
+      dispatch(resetCurrentRequest());
+      dispatch(updateCurrentRequestMethod("GET"));
+      dispatch(updateCurrentRequestUrl(Config.demoBaseUrl + Config.patient));
       try {
         const response = await axios.get(Config.patient);
         dispatch(
-          updateCdsResponse({
+          updateCurrentResponse({
             cards: response.data,
             systemActions: {},
           })

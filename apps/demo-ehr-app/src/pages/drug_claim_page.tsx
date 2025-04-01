@@ -14,18 +14,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Form from "react-bootstrap/Form";
 import Card from "react-bootstrap/Card";
 import Button from "react-bootstrap/Button";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  updateRequest,
-  updateRequestMethod,
-  updateRequestUrl,
-} from "../redux/cdsRequestSlice";
-import { updateCdsResponse, resetCdsResponse } from "../redux/cdsResponseSlice";
 import { CLAIM_REQUEST_BODY, PATIENT_DETAILS } from "../constants/data";
 import { useAuth } from "../components/AuthProvider";
 import { Navigate } from "react-router-dom";
@@ -33,6 +27,7 @@ import { Alert, Snackbar } from "@mui/material";
 import { selectPatient } from "../redux/patientSlice";
 import Lottie from "react-lottie";
 import successAnimation from "../animations/success-animation.json"; // Add your animation JSON file here
+import { updateIsProcess } from "../redux/currentStateSlice";
 
 const ClaimForm = () => {
   const dispatch = useDispatch();
@@ -64,6 +59,10 @@ const ClaimForm = () => {
   if (!currentPatient) {
     currentPatient = PATIENT_DETAILS[0];
   }
+
+  useEffect(() => {
+    dispatch(updateIsProcess(true));
+  }, [dispatch]);
 
   const [formData, setFormData] = useState<{
     medication: string;
@@ -109,14 +108,14 @@ const ClaimForm = () => {
       formData.quantity,
       formData.unitPrice
     );
-    console.log("payload", payload);
-    dispatch(resetCdsResponse());
 
-    dispatch(updateRequestMethod("POST"));
-    dispatch(updateRequestUrl(Config.demoBaseUrl + Config.claim_submit));
-    dispatch(updateRequest(payload));
+    localStorage.setItem("claimRequestMethod", "POST");
+    localStorage.setItem(
+      "claimRequestUrl",
+      Config.demoBaseUrl + Config.claim_submit
+    );
 
-    
+    localStorage.setItem("claimRequest", JSON.stringify(payload));
 
     axios
       .post(Config.claim_submit, payload, {
@@ -145,24 +144,14 @@ const ClaimForm = () => {
         }
         setOpenSnackbar(true);
 
-        dispatch(
-          updateCdsResponse({
-            cards: response.data,
-            systemActions: {},
-          })
-        );
+        localStorage.setItem("claimResponse", JSON.stringify(response.data));
       })
       .catch((error) => {
         setAlertMessage("Error submitting claim");
         setAlertSeverity("error");
         setOpenSnackbar(true);
-
-        dispatch(
-          updateCdsResponse({
-            cards: error,
-            systemActions: {},
-          })
-        );
+        console.log(error);
+        return;
       });
   };
 

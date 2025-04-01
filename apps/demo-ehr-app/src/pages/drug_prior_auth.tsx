@@ -24,16 +24,17 @@ import Select from "react-select";
 import DatePicker from "react-datepicker";
 import { useDispatch, useSelector } from "react-redux";
 import { Alert, Snackbar } from "@mui/material";
-import {
-  updateRequest,
-  updateRequestUrl,
-  updateRequestMethod,
-  resetCdsRequest,
-} from "../redux/cdsRequestSlice";
-import { updateCdsResponse, resetCdsResponse } from "../redux/cdsResponseSlice";
 import { useAuth } from "../components/AuthProvider";
 import { PATIENT_DETAILS } from "../constants/data";
 import { selectPatient } from "../redux/patientSlice";
+import { updateIsProcess } from "../redux/currentStateSlice";
+import {
+  resetCdsRequest,
+  updateRequestUrl,
+  updateRequestMethod,
+  updateRequest,
+} from "../redux/cdsRequestSlice";
+import { resetCdsResponse, updateCdsResponse } from "../redux/cdsResponseSlice";
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -88,9 +89,12 @@ const QuestionnniarForm = ({
   useEffect(() => {
     dispatch(resetCdsRequest());
     dispatch(resetCdsResponse());
+    dispatch(updateIsProcess(true));
     // Fetch the questionnaire data from the API
     const Config = window.Config;
-    dispatch(updateRequestUrl(Config.demoBaseUrl + Config.questionnaire_package));
+    dispatch(
+      updateRequestUrl(Config.demoBaseUrl + Config.questionnaire_package)
+    );
     dispatch(updateRequestMethod("POST"));
     dispatch(updateRequest(requestBody));
 

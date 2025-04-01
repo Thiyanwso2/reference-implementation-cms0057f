@@ -19,23 +19,23 @@ import "../assets/styles/main.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "react-datepicker/dist/react-datepicker.css";
 import Form from "react-bootstrap/Form";
-import Button from "react-bootstrap/Button";
+import { CircularProgress, Button as MuiButton } from "@mui/material";
 import Select, { ActionMeta, SingleValue } from "react-select";
 import Card from "react-bootstrap/Card";
 import DatePicker from "react-datepicker";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  updateCdsHook,
-  updateRequest,
-  updateRequestUrl,
-  updateRequestMethod,
-  resetCdsRequest,
-} from "../redux/cdsRequestSlice";
-import { resetCdsResponse, updateCdsResponse } from "../redux/cdsResponseSlice";
-import {
   updateMedicationFormData,
   resetMedicationFormData,
 } from "../redux/medicationFormDataSlice";
+import {
+  updateIsProcess,
+  resetCurrentRequest,
+  updateCurrentRequest,
+  updateCurrentRequestMethod,
+  updateCurrentRequestUrl,
+  updateCurrentResponse,
+} from "../redux/currentStateSlice";
 
 import {
   FREQUENCY_OPTIONS,
@@ -49,7 +49,17 @@ import { CdsCard, CdsResponse } from "../components/interfaces/cdsCard";
 import axios from "axios";
 import { useAuth } from "../components/AuthProvider";
 import { Navigate } from "react-router-dom";
-import { Alert, Snackbar } from "@mui/material";
+import { Alert, Box, Snackbar, Step, StepLabel, Stepper } from "@mui/material";
+import {
+  StepStatus,
+  updateActiveStep,
+  updateSingleStep,
+} from "../redux/commonStoargeSlice";
+
+interface Operation {
+  name: string;
+  isCompleted: boolean;
+}
 
 const PrescribeForm = ({
   setCdsCards,
@@ -57,9 +67,16 @@ const PrescribeForm = ({
   setCdsCards: React.Dispatch<React.SetStateAction<CdsCard[]>>;
 }) => {
   const dispatch = useDispatch();
+  const [activeOperation, setActiveOperation] = useState(-1);
+  const [operations, setOperations] = useState<Operation[]>([
+    { name: "Create medication request", isCompleted: false },
+    { name: "Check payer requirements", isCompleted: false },
+  ]);
+  const [buttonLoading, setButtonLoading] = useState(false);
 
   useEffect(() => {
     dispatch(resetMedicationFormData());
+    dispatch(updateIsProcess(true));
   }, [dispatch]);
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -111,9 +128,19 @@ const PrescribeForm = ({
     e.preventDefault();
   };
 
+  const timeout = (delay: number) => {
+    return new Promise((res) => setTimeout(res, delay));
+  };
+
   const handleCheckPayerRequirements = () => {
-    dispatch(resetCdsRequest());
-    dispatch(resetCdsResponse());
+    dispatch(updateActiveStep(1));
+    setActiveOperation(1);
+    dispatch(
+      updateSingleStep({
+        stepName: "CDS Invocation",
+        newStatus: StepStatus.IN_PROGRESS,
+      })
+    );
 
     const payload = CHECK_PAYER_REQUIREMENTS_REQUEST_BODY(
       patientId,
@@ -124,10 +151,13 @@ const PrescribeForm = ({
     const Config = window.Config;
 
     setCdsCards([]);
-    dispatch(updateCdsHook("order-sign"));
-    dispatch(updateRequestMethod("POST"));
-    dispatch(updateRequestUrl(Config.demoBaseUrl + Config.prescribe_medication));
-    dispatch(updateRequest(payload));
+    localStorage.setItem("cdsHook", "order-sign");
+    localStorage.setItem("cdsRequestMethod", "POST");
+    localStorage.setItem(
+      "cdsRequestUrl",
+      Config.demoBaseUrl + Config.prescribe_medication
+    );
+    localStorage.setItem("cdsRequest", JSON.stringify(payload));
 
     axios
       .post<CdsResponse>(Config.prescribe_medication, payload)
@@ -143,14 +173,41 @@ const PrescribeForm = ({
 
         setCdsCards(res.data.cards);
 
-        dispatch(updateCdsResponse({ cards: res.data, systemActions: {} }));
+        localStorage.setItem(
+          "cdsResponse",
+          JSON.stringify({ cards: res.data, systemActions: {} })
+        );
+        setOperations((prev) =>
+          prev.map((op) => {
+            if (op.name === "Check payer requirements") {
+              return {
+                name: op.name,
+                isCompleted: true,
+              };
+            }
+            return op;
+          })
+        );
+        setIsSubmited(true);
+        setButtonLoading(false);
+        dispatch(
+          updateSingleStep({
+            stepName: "CDS Invocation",
+            newStatus: StepStatus.COMPLETED,
+          })
+        );
+
         return res.data;
       })
       .catch((err) => {
         setAlertMessage("Error retrieving payer requirements!");
         setAlertSeverity("error");
         setOpenSnackbar(true);
-        dispatch(updateCdsResponse({ cards: err, systemActions: {} }));
+        localStorage.setItem(
+          "cdsResponse",
+          JSON.stringify({ cards: err, systemActions: {} })
+        );
+        setButtonLoading(false);
       });
   };
   const validateForm = () => {
@@ -175,15 +232,35 @@ const PrescribeForm = ({
     if (!validateForm()) {
       return;
     }
-    dispatch(resetCdsRequest());
-    dispatch(resetCdsResponse());
+
+    dispatch(updateActiveStep(0));
+    dispatch(
+      updateSingleStep({
+        stepName: "Medication request",
+        newStatus: StepStatus.IN_PROGRESS,
+      })
+    );
+
+    setButtonLoading(true);
+    setActiveOperation(0);
+    dispatch(resetCurrentRequest());
 
     const payload = CREATE_MEDICATION_REQUEST_BODY();
     const Config = window.Config;
 
-    dispatch(updateRequestMethod("POST"));
-    dispatch(updateRequestUrl(Config.demoBaseUrl + Config.medication_request));
-    dispatch(updateRequest(payload));
+    localStorage.setItem("medicationRequestMethod", "POST");
+    localStorage.setItem(
+      "medicationRequestUrl",
+      Config.demoBaseUrl + Config.medication_request
+    );
+    localStorage.setItem("medicationRequest", JSON.stringify(payload));
+
+    dispatch(updateIsProcess(true));
+    dispatch(updateCurrentRequestMethod("POST"));
+    dispatch(
+      updateCurrentRequestUrl(Config.demoBaseUrl + Config.medication_request)
+    );
+    dispatch(updateCurrentRequest(payload));
 
     axios
       .post<CdsResponse>(Config.medication_request, payload, {
@@ -191,7 +268,7 @@ const PrescribeForm = ({
           "Content-Type": "application/fhir+json",
         },
       })
-      .then<CdsResponse>((res) => {
+      .then<CdsResponse>(async (res) => {
         if (res.status >= 200 && res.status < 300) {
           setAlertMessage("Medication order created successfully!");
           setAlertSeverity("success");
@@ -200,15 +277,35 @@ const PrescribeForm = ({
           setAlertSeverity("error");
         }
         setOpenSnackbar(true);
-        dispatch(updateCdsResponse({ cards: res.data, systemActions: {} }));
-        setIsSubmited(true);
+        localStorage.setItem("medicationResponse", JSON.stringify(res.data));
+        dispatch(updateCurrentResponse(res.data));
+        setOperations((prev) =>
+          prev.map((op) => {
+            if (op.name === "Create medication request") {
+              return {
+                name: op.name,
+                isCompleted: true,
+              };
+            }
+            return op;
+          })
+        );
+        await timeout(3000);
+        dispatch(
+          updateSingleStep({
+            stepName: "Medication request",
+            newStatus: StepStatus.COMPLETED,
+          })
+        );
+        handleCheckPayerRequirements();
+
         return res.data;
       })
       .catch((err) => {
         setAlertMessage("Error creating medication order!");
         setAlertSeverity("error");
         setOpenSnackbar(true);
-        dispatch(updateCdsResponse({ cards: err, systemActions: {} }));
+        setButtonLoading(false);
       });
   };
 
@@ -326,24 +423,41 @@ const PrescribeForm = ({
             </Form.Group>
           </div>
           <div style={{ marginTop: "30px", float: "right" }}>
-            {isSubmited && (
-              <Button
-                variant="primary"
-                type="submit"
-                onClick={handleCheckPayerRequirements}
-              >
-                Check Payer Requirements
-              </Button>
-            )}
-            <Button
-              variant="success"
-              // type="submit"
-              style={{ marginLeft: "30px", float: "right" }}
-              onClick={handleCreateMedicationOrder}
-              disabled={isSubmited || !validateForm() ? true : false}
+            <Box
+              sx={{ width: "100%" }}
+              display="flex"
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="space-between"
+              gap={2}
             >
-              Create Medication Order
-            </Button>
+              <Stepper
+                activeStep={activeOperation}
+                alternativeLabel
+                sx={{ marginTop: 6 }}
+              >
+                {operations.map((operation) => (
+                  <Step key={operation.name} completed={operation.isCompleted}>
+                    <StepLabel>{operation.name}</StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+              <MuiButton
+                variant="contained"
+                color="primary"
+                style={{ marginLeft: "30px", float: "right" }}
+                onClick={handleCreateMedicationOrder}
+                disabled={isSubmited || !validateForm() ? true : false}
+                endIcon={
+                  buttonLoading ? (
+                    <CircularProgress size={20} sx={{ color: "white" }} />
+                  ) : null
+                }
+              >
+                Create Medication Order
+              </MuiButton>
+              {isSubmited}
+            </Box>
           </div>
         </Form>
       </Card.Body>
