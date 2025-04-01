@@ -24,7 +24,7 @@ isolated function connectDecisionSystemForPrescirbeMedication(cds:CdsRequest cds
             {
                 "summary": "Prior Authorization Required",
                 "indicator": "warning",
-                "detail": "This medication (Aimovig 70 mg) requires prior authorization from XYZ Health Insurance. Please complete the required documentation.",
+                "detail": "This medication (Aimovig) requires prior authorization from UnitedCare Health Insurance. Please complete the required documentation.",
                 "source": {
                     "label": "UnitedCare Health Insurance ePA Service",
                     "url": "https://xyzhealth.com/prior-auth"
