@@ -26,6 +26,8 @@ declare global {
   interface Window {
     Config: {
       baseUrl: string;
+      demoBaseUrl: string;
+      demoHospitalUrl: string;
       medication_request: string;
       prescribe_medication: string;
       questionnaire_package: string;
@@ -34,9 +36,11 @@ declare global {
       radiology_order: string;
       book_imaging_center: string;
       practitioner: string;
+      practitioner_new: string;
       slot: string;
       location: string;
       appointment: string;
+      patient: string;
     };
   }
 }

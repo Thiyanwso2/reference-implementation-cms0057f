@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from "uuid";
+
 // Copyright (c) 2024-2025, WSO2 LLC. (http://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
@@ -17,17 +19,10 @@
 export const SERVICE_CARD_DETAILS = [
   {
     serviceImagePath: "/patient_view_service.png",
-    serviceName: "View Patient",
+    serviceName: "Patient Demographics",
     serviceDescription:
       "Access and manage patient records, including personal details, medical history, and treatment plans.",
     path: "/dashboard/patient",
-  },
-  {
-    serviceImagePath: "/appointment_book_service.png",
-    serviceName: "Book an Appointment",
-    serviceDescription:
-      "Easily schedule and manage appointments with healthcare providers.",
-    path: "/dashboard/appointment-schedule",
   },
   {
     serviceImagePath: "/drug_order_service.png",
@@ -36,6 +31,14 @@ export const SERVICE_CARD_DETAILS = [
       "Order and manage medications for patients, ensuring timely and accurate delivery.",
     path: "/dashboard/drug-order-v2",
   },
+  {
+    serviceImagePath: "/appointment_book_service.png",
+    serviceName: "Book an Appointment",
+    serviceDescription:
+      "Easily schedule and manage appointments with healthcare providers.",
+    path: "/dashboard/appointment-schedule",
+  },
+
   {
     serviceImagePath: "/order_device_service.png",
     serviceName: "Order Devices",
@@ -551,6 +554,197 @@ export const APPOINTMENT_TYPE = [
 export const PATIENT_DETAILS = [
   {
     resourceType: "Patient",
+    gender: "male",
+    telecom: [
+      {
+        system: "phone",
+        use: "mobile",
+        value: "+1 555-555-5555",
+      },
+      {
+        system: "email",
+        value: "john@example.com",
+      },
+    ],
+    id: "101",
+    identifier: [
+      {
+        system: "http://hospital.org/patients",
+        value: "12345",
+      },
+    ],
+    address: [
+      {
+        country: "US",
+        city: "Anytown",
+        line: ["123 Main St"],
+        postalCode: "90210",
+        state: "CA",
+      },
+    ],
+    birthDate: "1979-04-15",
+    meta: {
+      profile: [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient",
+      ],
+    },
+    name: [
+      {
+        given: ["John"],
+        use: "official",
+        family: "Smith",
+      },
+    ],
+  },
+  {
+    resourceType: "Patient",
+    extension: [
+      {
+        url: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race",
+        extension: [
+          {
+            url: "ombCategory",
+            valueCoding: {
+              system: "urn:oid:2.16.840.1.113883.6.238",
+              code: "2106-3",
+              display: "White",
+            },
+          },
+          {
+            url: "ombCategory",
+            valueCoding: {
+              system: "urn:oid:2.16.840.1.113883.6.238",
+              code: "1002-5",
+              display: "American Indian or Alaska Native",
+            },
+          },
+          {
+            url: "ombCategory",
+            valueCoding: {
+              system: "urn:oid:2.16.840.1.113883.6.238",
+              code: "2028-9",
+              display: "Asian",
+            },
+          },
+          {
+            url: "detailed",
+            valueCoding: {
+              system: "urn:oid:2.16.840.1.113883.6.238",
+              code: "1586-7",
+              display: "Shoshone",
+            },
+          },
+          {
+            url: "detailed",
+            valueCoding: {
+              system: "urn:oid:2.16.840.1.113883.6.238",
+              code: "2036-2",
+              display: "Filipino",
+            },
+          },
+          {
+            url: "text",
+            valueString: "Mixed",
+          },
+        ],
+      },
+      {
+        url: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity",
+        extension: [
+          {
+            url: "ombCategory",
+            valueCoding: {
+              system: "urn:oid:2.16.840.1.113883.6.238",
+              code: "2135-2",
+              display: "Hispanic or Latino",
+            },
+          },
+          {
+            url: "detailed",
+            valueCoding: {
+              system: "urn:oid:2.16.840.1.113883.6.238",
+              code: "2184-0",
+              display: "Dominican",
+            },
+          },
+          {
+            url: "detailed",
+            valueCoding: {
+              system: "urn:oid:2.16.840.1.113883.6.238",
+              code: "2148-5",
+              display: "Mexican",
+            },
+          },
+          {
+            url: "text",
+            valueString: "Hispanic or Latino",
+          },
+        ],
+      },
+      {
+        url: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex",
+        valueCode: "F",
+      },
+    ],
+    gender: "female",
+    telecom: [
+      {
+        system: "phone",
+        use: "home",
+        value: "555-555-5555",
+      },
+      {
+        system: "email",
+        value: "amy.shaw@example.com",
+      },
+    ],
+    id: "102",
+    text: {
+      status: "generated",
+      div: '<div xmlns="http://www.w3.org/1999/xhtml">\n\t\t\t<p>\n\t\t\t\t<b>Generated Narrative with Details</b>\n\t\t\t</p>\n\t\t\t<p>\n\t\t\t\t<b>id</b>: example</p>\n\t\t\t<p>\n\t\t\t\t<b>identifier</b>: Medical Record Number = 1032702 (USUAL)</p>\n\t\t\t<p>\n\t\t\t\t<b>active</b>: true</p>\n\t\t\t<p>\n\t\t\t\t<b>name</b>: Amy V. Shaw </p>\n\t\t\t<p>\n\t\t\t\t<b>telecom</b>: ph: 555-555-5555(HOME), amy.shaw@example.com</p>\n\t\t\t<p>\n\t\t\t\t<b>gender</b>: </p>\n\t\t\t<p>\n\t\t\t\t<b>birthsex</b>: Female</p>\n\t\t\t<p>\n\t\t\t\t<b>birthDate</b>: Feb 20, 2007</p>\n\t\t\t<p>\n\t\t\t\t<b>address</b>: 49 Meadow St Mounds OK 74047 US </p>\n\t\t\t<p>\n\t\t\t\t<b>race</b>: White, American Indian or Alaska Native, Asian, Shoshone, Filipino</p>\n\t\t\t<p>\n\t\t\t\t<b>ethnicity</b>: Hispanic or Latino, Dominican, Mexican</p>\n\t\t</div>',
+    },
+    identifier: [
+      {
+        system: "http://hospital.smarthealthit.org",
+        use: "usual",
+        type: {
+          coding: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v2-0203",
+              code: "MR",
+              display: "Medical Record Number",
+            },
+          ],
+          text: "Medical Record Number",
+        },
+        value: "1032702",
+      },
+    ],
+    address: [
+      {
+        country: "US",
+        city: "Mounds",
+        line: ["49 Meadow St"],
+        postalCode: "74047",
+        state: "OK",
+      },
+    ],
+    active: true,
+    birthDate: "2007-02-20",
+    meta: {
+      profile: [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient",
+      ],
+    },
+    name: [
+      {
+        given: ["Jack", "V."],
+        family: "Shaw",
+      },
+    ],
+  },
+  {
+    resourceType: "Patient",
     id: "e1621d0ece654018a8539ddecca3e7f0",
     meta: {
       versionId: "1",
@@ -592,190 +786,6 @@ export const PATIENT_DETAILS = [
         city: "Anytown",
         state: "CA",
         postalCode: "12345",
-      },
-    ],
-  },
-  {
-    resourceType: "Patient",
-    id: "a72e6d3a8f154fb7a9c6a5f1b0d7e2a6",
-    meta: {
-      versionId: "1",
-      lastUpdated: "2023-07-01T09:15:00+00:00",
-    },
-    text: {
-      status: "generated",
-      div: '<div xmlns="http://www.w3.org/1999/xhtml">Jane Smith</div>',
-    },
-    identifier: [
-      {
-        use: "usual",
-        type: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/v2-0203",
-              code: "MR",
-            },
-          ],
-        },
-        system: "http://hospital.smarthealthit.org",
-        value: "7891011",
-      },
-    ],
-    active: true,
-    name: [
-      {
-        use: "official",
-        family: "Smith",
-        given: ["Jane"],
-      },
-    ],
-    gender: "female",
-    birthDate: "1980-04-20",
-    address: [
-      {
-        use: "home",
-        line: ["456 Elm Street"],
-        city: "Othertown",
-        state: "TX",
-        postalCode: "54321",
-      },
-    ],
-  },
-  {
-    resourceType: "Patient",
-    id: "b84c2d9c3e5d44c59912e3f3a5f2b6d1",
-    meta: {
-      versionId: "1",
-      lastUpdated: "2023-08-10T14:25:30+00:00",
-    },
-    text: {
-      status: "generated",
-      div: '<div xmlns="http://www.w3.org/1999/xhtml">Robert Johnson</div>',
-    },
-    identifier: [
-      {
-        use: "usual",
-        type: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/v2-0203",
-              code: "MR",
-            },
-          ],
-        },
-        system: "http://hospital.smarthealthit.org",
-        value: "987654",
-      },
-    ],
-    active: true,
-    name: [
-      {
-        use: "official",
-        family: "Johnson",
-        given: ["Robert"],
-      },
-    ],
-    gender: "male",
-    birthDate: "1965-11-30",
-    address: [
-      {
-        use: "home",
-        line: ["789 Pine Street"],
-        city: "Springfield",
-        state: "IL",
-        postalCode: "12398",
-      },
-    ],
-  },
-  {
-    resourceType: "Patient",
-    id: "c94e3f1d2e3b46a4b7e5f8f1d6c2b7f1",
-    meta: {
-      versionId: "1",
-      lastUpdated: "2023-09-15T17:30:00+00:00",
-    },
-    text: {
-      status: "generated",
-      div: '<div xmlns="http://www.w3.org/1999/xhtml">Emily Davis</div>',
-    },
-    identifier: [
-      {
-        use: "usual",
-        type: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/v2-0203",
-              code: "MR",
-            },
-          ],
-        },
-        system: "http://hospital.smarthealthit.org",
-        value: "456789",
-      },
-    ],
-    active: true,
-    name: [
-      {
-        use: "official",
-        family: "Davis",
-        given: ["Emily"],
-      },
-    ],
-    gender: "female",
-    birthDate: "1990-07-15",
-    address: [
-      {
-        use: "home",
-        line: ["321 Oak Street"],
-        city: "Centertown",
-        state: "NY",
-        postalCode: "78912",
-      },
-    ],
-  },
-  {
-    resourceType: "Patient",
-    id: "d92a6e7b1d2c3f4e5b7f1d2b3c6e7f8",
-    meta: {
-      versionId: "1",
-      lastUpdated: "2023-10-20T19:00:00+00:00",
-    },
-    text: {
-      status: "generated",
-      div: '<div xmlns="http://www.w3.org/1999/xhtml">Michael Brown</div>',
-    },
-    identifier: [
-      {
-        use: "usual",
-        type: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/v2-0203",
-              code: "MR",
-            },
-          ],
-        },
-        system: "http://hospital.smarthealthit.org",
-        value: "123789",
-      },
-    ],
-    active: true,
-    name: [
-      {
-        use: "official",
-        family: "Brown",
-        given: ["Michael"],
-      },
-    ],
-    gender: "male",
-    birthDate: "1972-09-12",
-    address: [
-      {
-        use: "home",
-        line: ["123 Birch Street"],
-        city: "Newtown",
-        state: "OH",
-        postalCode: "34567",
       },
     ],
   },
@@ -952,7 +962,7 @@ export const CLAIM_REQUEST_BODY = (
   supportingInfo: string,
   category: string,
   medication: string,
-  quantity: string,
+  quantity: number,
   unitPrice: string
 ) => {
   return {
@@ -1060,7 +1070,7 @@ export const CLAIM_REQUEST_BODY = (
                       currency: `${unitPrice}`.split(" ")[1],
                     },
                     quantity: {
-                      value: +`${quantity}`,
+                      value: quantity,
                     },
                   },
                 ],
@@ -1073,42 +1083,57 @@ export const CLAIM_REQUEST_BODY = (
   };
 };
 
-export const CREATE_MEDICATION_REQUEST_BODY = () => {
+export const CREATE_MEDICATION_REQUEST_BODY = (
+  patientId: string,
+  practitionerId: string,
+  medication: string,
+  frequency: number,
+  frequencyUnit: string,
+  period: number,
+  startDate: string
+) => {
+  const selectedMedication = MEDICATION_OPTIONS.flatMap(
+    (option) => option.options
+  ).find((option) => option.value === medication);
+
+  const doseQuantity = selectedMedication?.doseQuantity || "";
+  const doseUnit = selectedMedication?.doseUnit || "";
+
   return {
     resourceType: "MedicationRequest",
     subject: {
-      reference: "Patient/101",
+      reference: `Patient/${patientId}`,
     },
     medicationReference: {
-      reference: "Medication/aimovig-70mg",
+      reference: `Medication/${medication}`,
     },
     dispenseRequest: {
       quantity: {
         value: 1.0,
-        unit: "injection",
+        unit: selectedMedication?.unit || "",
         system: "http://unitsofmeasure.org",
-        code: "injection",
+        code: selectedMedication?.unit || "",
       },
       expectedSupplyDuration: {
-        unit: "days",
+        unit: frequencyUnit,
         system: "http://unitsofmeasure.org",
-        code: "d",
-        value: 30.0,
+        code: frequencyUnit,
+        value: frequency,
       },
     },
     requester: {
-      reference: "Practitioner/456",
+      reference: `Practitioner/${practitionerId}`,
     },
-    authoredOn: "2025-03-02",
+    authoredOn: new Date().toISOString().split("T")[0],
     medicationCodeableConcept: {
       coding: [
         {
           system: "http://www.nlm.nih.gov/research/umls/rxnorm",
-          code: "1746007",
-          display: "Aimovig 70 mg Injection",
+          code: selectedMedication?.code || "",
+          display: medication,
         },
       ],
-      text: "Aimovig 70 mg Injection",
+      text: medication,
     },
     intent: "order",
     dosageInstruction: [
@@ -1116,24 +1141,24 @@ export const CREATE_MEDICATION_REQUEST_BODY = () => {
         timing: {
           repeat: {
             boundsPeriod: {
-              start: "2025-03-02",
+              start: startDate,
             },
-            frequency: 1,
-            period: 1.0,
-            periodUnit: "mo",
+            frequency: frequency,
+            period: period,
+            periodUnit: frequencyUnit,
           },
         },
         doseAndRate: [
           {
             doseQuantity: {
-              value: 70.0,
-              unit: "mg",
+              value: doseQuantity,
+              unit: doseUnit,
               system: "http://unitsofmeasure.org",
-              code: "mg",
+              code: doseUnit,
             },
           },
         ],
-        text: "Inject 70 mg subcutaneously once a month",
+        text: `${medication}, for ${frequency} times a ${frequencyUnit} for ${period} ${frequencyUnit}`,
       },
     ],
     status: "active",
@@ -1143,9 +1168,19 @@ export const CREATE_MEDICATION_REQUEST_BODY = () => {
 export const CHECK_PAYER_REQUIREMENTS_REQUEST_BODY = (
   patientId: string,
   practitionerId: string,
-  medicationName: string,
-  quantity: number
+  medication: string,
+  frequency: number,
+  frequencyUnit: string,
+  period: number,
+  startDate: string
 ) => {
+  const selectedMedication = MEDICATION_OPTIONS.flatMap(
+    (option) => option.options
+  ).find((option) => option.value === medication);
+
+  const doseQuantity = selectedMedication?.doseQuantity || "";
+  const doseUnit = selectedMedication?.doseUnit || "";
+
   return {
     hook: "order-sign",
     hookInstance: "98765-wxyz-43210-lmno",
@@ -1163,62 +1198,62 @@ export const CHECK_PAYER_REQUIREMENTS_REQUEST_BODY = (
             resource: {
               resourceType: "MedicationRequest",
               subject: {
-                reference: "Patient/john-smith",
+                reference: `Patient/${patientId}`,
               },
               medicationCodeableConcept: {
                 coding: [
                   {
                     system: "http://www.nlm.nih.gov/research/umls/rxnorm",
-                    code: "1746007",
-                    display: `${medicationName}`,
+                    code: selectedMedication?.code || "",
+                    display: `${medication}`,
                   },
                 ],
-                text: `${medicationName}`,
+                text: `${medication}`,
               },
               dispenseRequest: {
                 quantity: {
-                  value: quantity,
-                  unit: "mL",
+                  value: doseQuantity,
+                  unit: doseUnit,
                   system: "http://unitsofmeasure.org",
-                  code: "mL",
+                  code: doseUnit,
                 },
                 numberOfRepeatsAllowed: 1,
                 expectedSupplyDuration: {
-                  unit: "days",
+                  unit: frequencyUnit,
                   system: "http://unitsofmeasure.org",
-                  code: "d",
-                  value: 30.0,
+                  code: frequencyUnit,
+                  value: frequency,
                 },
               },
-              id: "medication-request-001",
+              id: `medication-request-${uuidv4()}`,
               intent: "order",
               dosageInstruction: [
                 {
-                  text: "Inject 70 mg once a month",
+                  text: `${medication}, for ${frequency} times a ${frequencyUnit} for ${period} ${frequencyUnit}`,
                   timing: {
                     repeat: {
                       boundsPeriod: {
-                        start: "2025-03-02",
+                        start: startDate,
                       },
-                      frequency: 1,
-                      period: 1.0,
-                      periodUnit: "mo",
+                      frequency: frequency,
+                      period: period,
+                      periodUnit: frequencyUnit,
                     },
                   },
                   doseAndRate: [
                     {
                       doseQuantity: {
-                        value: 70.0,
-                        unit: "mg",
+                        value: doseQuantity,
+                        unit: doseUnit,
                         system: "http://unitsofmeasure.org",
-                        code: "mg",
+                        code: doseUnit,
                       },
                     },
                   ],
                 },
               ],
               meta: {
-                lastUpdated: "2025-03-02T10:00:00.000Z",
+                lasyUpdated: new Date().toISOString(),
               },
               status: "draft",
             },
@@ -1475,29 +1510,15 @@ export const response = {
   ],
 };
 
-export const FREQUENCY_OPTIONS = [
-  {
-    label: "Daily",
-    options: [
-      { value: "Once a day", label: "Once a day" },
-      { value: "Twice a day", label: "Twice a day" },
-      { value: "Thrice a day", label: "Thrice a day" },
-    ],
-  },
-  {
-    label: "Weekly",
-    options: [
-      { value: "Once a week", label: "Once a week" },
-      { value: "Twice a week", label: "Twice a week" },
-    ],
-  },
-  {
-    label: "Monthly",
-    options: [
-      { value: "Once a month", label: "Once a month" },
-      { value: "Twice a month", label: "Twice a month" },
-    ],
-  },
+export const FREQUENCY_UNITS = [
+  { value: "mo", label: "Month(s)" },
+  { value: "wk", label: "Week(s)" },
+  { value: "d", label: "Day(s)" },
+];
+
+export const QUANTITY_UNITS = [
+  { value: "mg", label: "mg" },
+  { value: "ml", label: "ml" },
 ];
 
 export const TREATMENT_OPTIONS = [
@@ -1505,13 +1526,6 @@ export const TREATMENT_OPTIONS = [
     value: "Migraine Prevention",
     label: "Migraine Prevention",
   },
-  {
-    value: "Gastroesophageal Reflux Disease",
-    label: "Gastroesophageal Reflux Disease",
-  },
-  { value: "Vertigo", label: "Vertigo" },
-  { value: "Urinary tract Infection", label: "Urinary tract Infection" },
-  { value: "Mechanical Pain", label: "Mechanical Pain" },
 ];
 
 export const MEDICATION_OPTIONS = [
@@ -1519,51 +1533,21 @@ export const MEDICATION_OPTIONS = [
     label: "Aimovig",
     options: [
       {
-        code: "1746007",
         value: "Aimovig 70 mg Injection",
         label: "Aimovig 70 mg Injection",
+        code: "1746007",
+        doseQuantity: 70,
+        doseUnit: "mg",
+        unit: "injection",
       },
       {
-        code: "1746008",
         value: "Aimovig 140 mg Injection",
         label: "Aimovig 140 mg Injection",
+        code: "1746008",
+        doseQuantity: 140,
+        doseUnit: "mg",
+        unit: "injection",
       },
-    ],
-  },
-  {
-    label: "Omeprazole",
-    options: [
-      { value: "Omeprazole 10 mg", label: "Omeprazole 10 mg" },
-      { value: "Omeprazole 20 mg", label: "Omeprazole 20 mg" },
-      { value: "Omeprazole 40 mg", label: "Omeprazole 40 mg" },
-    ],
-  },
-  {
-    label: "Esmoprazole",
-    options: [
-      { value: "Esmoprazole 20 mg", label: "Esmoprazole 20 mg" },
-      { value: "Esmoprazole 40 mg", label: "Esmoprazole 40 mg" },
-    ],
-  },
-  {
-    label: "Stemetil",
-    options: [{ value: "Stemetil 5 mg", label: "Stemetil 5 mg" }],
-  },
-  {
-    label: "Ciprofloxacin",
-    options: [{ value: "Ciprofloxacin 500 mg", label: "Ciprofloxacin 500 mg" }],
-  },
-  {
-    label: "Nitrofurantion",
-    options: [
-      { value: "Nitrofurantion 50 mg", label: "Ciprofloxacin 50 mg" },
-      { value: "Nitrofurantion 100 mg", label: "Ciprofloxacin 100 mg" },
-    ],
-  },
-  {
-    label: "Diclofenac Sodium",
-    options: [
-      { value: "Diclofenac Sodium 50 mg", label: "Diclofenac Sodium 50 mg" },
     ],
   },
 ];

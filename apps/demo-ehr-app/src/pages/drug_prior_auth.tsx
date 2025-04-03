@@ -32,8 +32,8 @@ import {
 } from "../redux/cdsRequestSlice";
 import { updateCdsResponse, resetCdsResponse } from "../redux/cdsResponseSlice";
 import { useAuth } from "../components/AuthProvider";
-import { PATIENT_DETAILS } from "../constants/data";
-import { selectPatient } from "../redux/patientSlice";
+import PatientInfo from "../components/PatientInfo";
+import { FREQUENCY_UNITS } from "../constants/data";
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -90,6 +90,12 @@ const QuestionnniarForm = ({
     dispatch(resetCdsResponse());
     // Fetch the questionnaire data from the API
     const Config = window.Config;
+    dispatch(
+      updateRequestUrl(Config.demoBaseUrl + Config.questionnaire_package)
+    );
+    dispatch(updateRequestMethod("POST"));
+    dispatch(updateRequest(requestBody));
+
     axios
       .post(Config.questionnaire_package, requestBody, {
         headers: {
@@ -110,12 +116,6 @@ const QuestionnniarForm = ({
         setQuestions(
           questionnaire.parameter[0].resource.entry[0].resource.item || []
         );
-
-        dispatch(
-          updateRequestUrl("/fhir/r4/Questionnaire/$questionnaire-package")
-        );
-        dispatch(updateRequestMethod("POST"));
-        dispatch(updateRequest(requestBody));
 
         dispatch(
           updateCdsResponse({
@@ -200,14 +200,17 @@ const QuestionnniarForm = ({
       }[];
     }[];
   }) => {
+    const Config = window.Config;
     dispatch(resetCdsRequest());
     dispatch(resetCdsResponse());
     dispatch(updateRequest(questionnaireResponse));
-    dispatch(updateRequestUrl("/fhir/r4/QuestionnaireResponse"));
+    dispatch(
+      updateRequestUrl(Config.demoBaseUrl + Config.questionnaire_response)
+    );
     dispatch(updateRequestMethod("POST"));
 
     // Submit the questionnaire response to the API
-    const Config = window.Config;
+
     axios
       .post(Config.questionnaire_response, questionnaireResponse, {
         headers: {
@@ -360,18 +363,22 @@ const PrescribedForm = () => {
       medicationFormData: {
         treatingSickness: string;
         medication: string;
-        quantity: number;
         frequency: string;
+        frequencyUnit: string;
+        period: number;
         startDate: Date;
-        duration: string;
       };
     }) => state.medicationFormData
   );
   const treatingSickness = medicationFormData.treatingSickness;
   const medication = medicationFormData.medication;
-  const quantity = medicationFormData.quantity;
   const frequency = medicationFormData.frequency;
-  const duration = medicationFormData.duration;
+
+  const frequencyUnit =
+    FREQUENCY_UNITS.find(
+      (unit) => unit.value === medicationFormData.frequencyUnit
+    )?.label || medicationFormData.frequencyUnit;
+  const period = medicationFormData.period;
 
   return (
     <Card style={{ marginTop: "30px", padding: "20px" }}>
@@ -382,7 +389,7 @@ const PrescribedForm = () => {
             controlId="formTreatingSickness"
             style={{ marginTop: "20px" }}
           >
-            <Form.Label>Treating Sickness</Form.Label>
+            <Form.Label>Treating</Form.Label>
             <Form.Control type="text" value={treatingSickness || ""} disabled />
           </Form.Group>
 
@@ -398,14 +405,6 @@ const PrescribedForm = () => {
             }}
           >
             <Form.Group
-              controlId="formQuantity"
-              style={{ marginTop: "20px", flex: "1 1 100%" }}
-            >
-              <Form.Label>Quantity</Form.Label>
-              <Form.Control type="text" value={quantity || ""} disabled />
-            </Form.Group>
-
-            <Form.Group
               controlId="formFrequency"
               style={{ marginTop: "20px", flex: "1 1 100%" }}
             >
@@ -417,10 +416,17 @@ const PrescribedForm = () => {
               controlId="formDuration"
               style={{ marginTop: "20px", flex: "1 1 100%" }}
             >
-              <Form.Label>Duration (days)</Form.Label>
-              <Form.Control type="text" value={duration || ""} disabled />
+              <Form.Label>Frequency Unit</Form.Label>
+              <Form.Control type="text" value={frequencyUnit || ""} disabled />
             </Form.Group>
 
+            <Form.Group
+              controlId="formPeriod"
+              style={{ marginTop: "20px", flex: "1 1 100%" }}
+            >
+              <Form.Label>Period</Form.Label>
+              <Form.Control type="text" value={period || ""} disabled />
+            </Form.Group>
             <Form.Group
               controlId="formStartDate"
               style={{ marginTop: "20px", flex: "1 1 100%", width: "100%" }}
@@ -442,50 +448,6 @@ const PrescribedForm = () => {
   );
 };
 
-const DetailsDiv = ({ questionnaireId }: { questionnaireId: string }) => {
-  const dispatch = useDispatch();
-  const savedPatientId = localStorage.getItem("selectedPatientId");
-  if (savedPatientId) {
-    dispatch(selectPatient(savedPatientId));
-  }
-  const selectedPatientId = useSelector(
-    (state: any) => state.patient.selectedPatientId
-  );
-  const currentPatient = PATIENT_DETAILS.find(
-    (patient) => patient.id === selectedPatientId
-  );
-
-  return (
-    <div style={{ display: "flex", gap: "20px" }}>
-      <Form.Group
-        controlId="formPatientName"
-        style={{ marginTop: "20px", flex: "1 1 100%" }}
-      >
-        <Form.Label>Patient Name</Form.Label>
-        <Form.Control
-          type="text"
-          value={`${currentPatient?.name[0].given[0]} ${currentPatient?.name[0].family}`}
-          disabled
-        />
-      </Form.Group>
-      <Form.Group
-        controlId="formPatientID"
-        style={{ marginTop: "20px", flex: "1 1 100%" }}
-      >
-        <Form.Label>Patient ID</Form.Label>
-        <Form.Control type="text" value={currentPatient?.id} disabled />
-      </Form.Group>
-      <Form.Group
-        controlId="formPatientName"
-        style={{ marginTop: "20px", flex: "1 1 100%" }}
-      >
-        <Form.Label>Questionnaire ID</Form.Label>
-        <Form.Control type="text" value={questionnaireId} disabled />
-      </Form.Group>
-    </div>
-  );
-};
-
 export default function DrugPiorAuthPage() {
   const { isAuthenticated } = useAuth();
   const query = useQuery();
@@ -499,7 +461,7 @@ export default function DrugPiorAuthPage() {
       <div className="page-heading">
         Send a Prior-Authorizing Request for Drugs
       </div>
-      <DetailsDiv questionnaireId={questionnaireId || ""} />
+      <PatientInfo />
       <PrescribedForm />
       <QuestionnniarForm
         questionnaireId={questionnaireId || ""}
