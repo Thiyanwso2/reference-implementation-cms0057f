@@ -125,7 +125,6 @@ export default function HorizontalNonLinearStepper() {
           }
           return;
         } else {
-          console.log("Else");
           localStorage.setItem(
             QUESTIONNAIRE_RESPONSE,
             JSON.stringify({
