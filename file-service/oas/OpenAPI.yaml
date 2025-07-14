@@ -21,20 +21,20 @@ paths:
         content:
           application/fhir+json:
             schema:
-              $ref: '#/components/schemas/Parameters'
+              type: object
       responses:
         '200':
           description: Export job accepted
           content:
             application/fhir+json:
               schema:
-                $ref: '#/components/schemas/OperationOutcome'
+                type: object
         '500':
           description: Server error
           content:
             application/fhir+json:
               schema:
-                $ref: '#/components/schemas/FHIRError'
+                type: object
 
   /bulk/status/{exportTaskId}:
     get:
@@ -86,7 +86,7 @@ paths:
           content:
             application/fhir+json:
               schema:
-                $ref: '#/components/schemas/FHIRError'
+                type: object
 
   /bulk/{exportId}/files/{fileName}:
     get:
