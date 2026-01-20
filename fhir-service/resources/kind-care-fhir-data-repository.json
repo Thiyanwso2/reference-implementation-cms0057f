@@ -1476,10 +1476,12 @@
             "issued": "2025-06-05T12:00:00-05:00",
             "result": [
                 {
-                    "reference": "Observation/observation-wbc"
+                    "reference": "Observation/observation-wbc",
+                    "display": "Observation/observation-wbc"
                 },
                 {
-                    "reference": "Observation/observation-hemoglobin"
+                    "reference": "Observation/observation-hemoglobin",
+                    "display": "Observation/observation-hemoglobin"
                 }
             ]
         },
@@ -1520,16 +1522,20 @@
             "issued": "2025-06-03T11:00:00-05:00",
             "result": [
                 {
-                    "reference": "Observation/observation-cholesterol"
+                    "reference": "Observation/observation-cholesterol",
+                    "display": "Observation/observation-cholesterol"
                 },
                 {
-                    "reference": "Observation/observation-ldl"
+                    "reference": "Observation/observation-ldl",
+                    "display": "Observation/observation-ldl"
                 },
                 {
-                    "reference": "Observation/observation-hdl"
+                    "reference": "Observation/observation-hdl",
+                    "display": "Observation/observation-hdl"
                 },
                 {
-                    "reference": "Observation/observation-triglycerides"
+                    "reference": "Observation/observation-triglycerides",
+                    "display": "Observation/observation-triglycerides"
                 }
             ]
         },
@@ -1568,6 +1574,11 @@
             },
             "effectiveDateTime": "2025-06-01T08:00:00-05:00",
             "issued": "2025-06-01T10:00:00-05:00",
+            "result": [
+                {
+                    "display": "DiagnosticReport/87918"
+                }
+            ],
             "presentedForm": [
                 {
                     "contentType": "application/pdf",
@@ -1613,6 +1624,11 @@
             },
             "effectiveDateTime": "2025-05-20T09:00:00-05:00",
             "issued": "2025-05-20T11:00:00-05:00",
+            "result": [
+                {
+                    "display": "DiagnosticReport/87917"
+                }
+            ],
             "presentedForm": [
                 {
                     "contentType": "application/pdf",
@@ -1658,6 +1674,11 @@
             },
             "effectiveDateTime": "2025-05-10T14:30:00-05:00",
             "issued": "2025-05-10T15:45:00-05:00",
+            "result": [
+                {
+                    "display": "DiagnosticReport/87916"
+                }
+            ],
             "presentedForm": [
                 {
                     "contentType": "application/pdf",
@@ -1703,6 +1724,11 @@
             },
             "effectiveDateTime": "2025-05-02T10:00:00-05:00",
             "issued": "2025-05-02T10:30:00-05:00",
+            "result": [
+                {
+                    "display": "DiagnosticReport/87915"
+                }
+            ],
             "presentedForm": [
                 {
                     "contentType": "application/pdf",
@@ -1748,6 +1774,11 @@
             },
             "effectiveDateTime": "2025-04-25T07:45:00-05:00",
             "issued": "2025-04-25T09:00:00-05:00",
+            "result": [
+                {
+                    "display": "DiagnosticReport/87914"
+                }
+            ],
             "presentedForm": [
                 {
                     "contentType": "application/pdf",
