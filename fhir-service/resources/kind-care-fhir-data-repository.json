@@ -2915,14 +2915,16 @@
                 "reference": "Organization/insurance-org"
             },
             "provider": {
-                "reference": "PractitionerRole/456"
+                "reference": "PractitionerRole/456",
+                "display": "PractitionerRole/456"
             },
             "insurance": [
                 {
                     "sequence": 1,
                     "focal": true,
                     "coverage": {
-                        "reference": "Coverage/insurance-coverage"
+                        "reference": "Coverage/insurance-coverage",
+                        "display": "Coverage/insurance-coverage"
                     }
                 }
             ],
@@ -2943,6 +2945,10 @@
                     }
                 }
             ],
+            "billablePeriod": {
+                "start": "2025-03-02",
+                "end": "2025-03-02"
+            },
             "item": [
                 {
                     "sequence": 1,
@@ -2962,18 +2968,23 @@
                                 "code": "1746007",
                                 "display": "Aimovig 70 mg Injection"
                             }
-                        ]
+                        ],
+                        "text": "Aimovig 70 mg Injection"
                     },
                     "servicedDate": "2025-03-02",
                     "unitPrice": {
-                        "value": 600.00,
+                        "value": 600.0,
                         "currency": "USD"
                     },
                     "quantity": {
                         "value": 1
                     }
                 }
-            ]
+            ],
+            "total": {
+                "value": 600.0,
+                "currency": "USD"
+            }
         },
         {
             "resourceType": "Claim",
@@ -3017,17 +3028,23 @@
                 "reference": "Organization/insurance-org"
             },
             "provider": {
-                "reference": "PractitionerRole/456"
+                "reference": "PractitionerRole/456",
+                "display": "PractitionerRole/456"
             },
             "insurance": [
                 {
                     "sequence": 1,
                     "focal": true,
                     "coverage": {
-                        "reference": "Coverage/insurance-coverage"
+                        "reference": "Coverage/insurance-coverage",
+                        "display": "Coverage/insurance-coverage"
                     }
                 }
             ],
+            "billablePeriod": {
+                "start": "2025-03-01",
+                "end": "2025-03-01"
+            },
             "item": [
                 {
                     "sequence": 1,
@@ -3047,18 +3064,23 @@
                                 "code": "198211",
                                 "display": "Humira 40 mg Injection"
                             }
-                        ]
+                        ],
+                        "text": "Humira 40 mg Injection"
                     },
                     "servicedDate": "2025-03-01",
                     "unitPrice": {
-                        "value": 1200.00,
+                        "value": 1200.0,
                         "currency": "USD"
                     },
                     "quantity": {
                         "value": 1
                     }
                 }
-            ]
+            ],
+            "total": {
+                "value": 1200.0,
+                "currency": "USD"
+            }
         },
         {
             "resourceType": "Claim",
@@ -3102,17 +3124,23 @@
                 "reference": "Organization/insurance-org"
             },
             "provider": {
-                "reference": "PractitionerRole/456"
+                "reference": "PractitionerRole/456",
+                "display": "PractitionerRole/456"
             },
             "insurance": [
                 {
                     "sequence": 1,
                     "focal": true,
                     "coverage": {
-                        "reference": "Coverage/insurance-coverage"
+                        "reference": "Coverage/insurance-coverage",
+                        "display": "Coverage/insurance-coverage"
                     }
                 }
             ],
+            "billablePeriod": {
+                "start": "2025-02-28",
+                "end": "2025-02-28"
+            },
             "item": [
                 {
                     "sequence": 1,
@@ -3132,18 +3160,23 @@
                                 "code": "617320",
                                 "display": "Remicade 100 mg Injection"
                             }
-                        ]
+                        ],
+                        "text": "Remicade 100 mg Injection"
                     },
                     "servicedDate": "2025-02-28",
                     "unitPrice": {
-                        "value": 1500.00,
+                        "value": 1500.0,
                         "currency": "USD"
                     },
                     "quantity": {
                         "value": 1
                     }
                 }
-            ]
+            ],
+            "total": {
+                "value": 1500.0,
+                "currency": "USD"
+            }
         },
         {
             "resourceType": "Claim",
@@ -3187,17 +3220,23 @@
                 "reference": "Organization/insurance-org"
             },
             "provider": {
-                "reference": "PractitionerRole/456"
+                "reference": "PractitionerRole/456",
+                "display": "PractitionerRole/456"
             },
             "insurance": [
                 {
                     "sequence": 1,
                     "focal": true,
                     "coverage": {
-                        "reference": "Coverage/insurance-coverage"
+                        "reference": "Coverage/insurance-coverage",
+                        "display": "Coverage/insurance-coverage"
                     }
                 }
             ],
+            "billablePeriod": {
+                "start": "2025-02-25",
+                "end": "2025-02-25"
+            },
             "item": [
                 {
                     "sequence": 1,
@@ -3217,18 +3256,23 @@
                                 "code": "860975",
                                 "display": "Cosentyx 150 mg Injection"
                             }
-                        ]
+                        ],
+                        "text": "Cosentyx 150 mg Injection"
                     },
                     "servicedDate": "2025-02-25",
                     "unitPrice": {
-                        "value": 1300.00,
+                        "value": 1300.0,
                         "currency": "USD"
                     },
                     "quantity": {
                         "value": 1
                     }
                 }
-            ]
+            ],
+            "total": {
+                "value": 1300.0,
+                "currency": "USD"
+            }
         }
     ],
     "ClaimResponse": [
@@ -3399,7 +3443,7 @@
                                         "type": "boolean"
                                     }
                                 ]
-                        }
+                            }
                         ]
                     }
                 }
