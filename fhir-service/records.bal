@@ -1,0 +1,782 @@
+// Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+import ballerina/time;
+import ballerinax/health.fhir.r4;
+import ballerinax/health.fhir.r4.davincipdex220;
+import ballerinax/health.fhir.r4.international401;
+
+// ============================================================================
+// Bulk Member Match Types
+// ============================================================================
+
+# Pairs an original input MemberPatient with its outcome reference for building
+# the result Group resources. Per spec:
+# - MatchedMembers: memberRef = the receiving-payer Patient reference (e.g. "Patient/1001")
+# - NonMatched / ConsentConstrained: memberRef = () (entity will reference the contained patient)
+# + originalPatient - Input member patient from the request bundle; may be () if parse failed
+# + memberRef - Outcome Patient reference for matched members; () for non-match paths
+# + displayOnly - Fallback label when entity has no resolvable patient reference
+public type MemberOutcomeEntry record {|
+    international401:Patient? originalPatient;
+    r4:Reference? memberRef;
+    string displayOnly?;
+|};
+
+// ============================================================================
+// Bulk Member Match Async Job Types
+// ============================================================================
+
+# Status enum for async bulk member match jobs
+public enum BulkMatchStatus {
+    BULK_MATCH_PENDING = "pending",
+    BULK_MATCH_PROCESSING = "processing",
+    BULK_MATCH_COMPLETED = "completed",
+    BULK_MATCH_FAILED = "failed"
+}
+
+# Internal record tracking an async bulk member match job
+#
+# + jobId - Unique job identifier
+# + status - Current job status
+# + createdAt - Job creation timestamp
+# + completedAt - Job completion timestamp (null if not yet done)
+# + result - The Parameters result resource (null if not completed)
+# + errorMessage - Error description if the job failed
+public type BulkMemberMatchJob record {|
+    string jobId;
+    BulkMatchStatus status;
+    time:Utc createdAt;
+    time:Utc? completedAt;
+    (davincipdex220:PDexMultiMemberMatchResponseParameters & readonly)? result;
+    string? errorMessage;
+|};
+
+// ============================================================================
+// Provider Access v2 Types
+// ============================================================================
+
+# Provider-member-match outcome bucket.
+public enum ProviderMemberMatchOutcome {
+    PROVIDER_MATCHED = "matched",
+    PROVIDER_NO_MATCH = "no-match",
+    PROVIDER_CONSENT_CONSTRAINED = "consent-constrained"
+}
+
+# Internal lifecycle state for provider access groups.
+public enum ProviderAccessGroupLifecycleStatus {
+    PROVIDER_GROUP_ACTIVE = "active",
+    PROVIDER_GROUP_EXPIRED = "expired"
+}
+
+# Member and provider treatment relationship data used for classification.
+# + memberPatientId - Logical id of the member Patient
+# + providerIdentifier - Provider identifier context (e.g. NPI)
+# + relationshipCode - Relationship or role code from attribution logic
+# + lastEncounterDate - Optional last qualifying encounter or service date
+public type TreatmentRelationshipEntry record {|
+    string memberPatientId;
+    string providerIdentifier;
+    string relationshipCode;
+    string lastEncounterDate?;
+|};
+
+# Member opt-out details with scope metadata.
+# + memberPatientId - Logical id of the member Patient
+# + scope - Opt-out scope code (e.g. global, provider-specific)
+# + reason - Optional reason text or code
+public type MemberOptOutEntry record {|
+    string memberPatientId;
+    string scope;
+    string reason?;
+|};
+
+# A classified no-match outcome with reason code/details.
+# + memberPatientId - Logical id of the member Patient
+# + reasonCode - Machine-readable no-match reason
+# + details - Optional human-readable diagnostics
+public type ProviderNoMatchReason record {|
+    string memberPatientId;
+    string reasonCode;
+    string details?;
+|};
+
+# Expiry metadata for short-lived matched member groups.
+# + expiresAt - UTC instant when the matched group expires
+# + ttlDays - TTL in days used when computing expiry
+public type MatchedGroupExpiryMetadata record {|
+    time:Utc expiresAt;
+    int ttlDays;
+|};
+
+# One provider-member-match decision entry.
+# + memberPatientId - Logical id of the member Patient
+# + providerIdentifier - Requesting provider identifier for this decision
+# + outcome - Matched, no-match, or consent-constrained bucket
+# + reason - Short reason code or diagnostics for the outcome
+# + memberRef - Patient reference when matched; () otherwise
+public type ProviderMatchDecision record {|
+    string memberPatientId;
+    string providerIdentifier;
+    ProviderMemberMatchOutcome outcome;
+    string reason;
+    r4:Reference? memberRef;
+|};
+
+# Status enum for async provider-member-match jobs
+public enum ProviderMemberMatchStatus {
+    PROVIDER_MEMBER_MATCH_PENDING = "pending",
+    PROVIDER_MEMBER_MATCH_PROCESSING = "processing",
+    PROVIDER_MEMBER_MATCH_COMPLETED = "completed",
+    PROVIDER_MEMBER_MATCH_FAILED = "failed"
+}
+
+# Internal record tracking an async provider-member-match job.
+# + jobId - Unique async job identifier
+# + providerIdentifier - Requesting provider identifier that owns this job
+# + status - Current job lifecycle status
+# + createdAt - Time the job was accepted
+# + completedAt - Time the job finished; () while running
+# + result - JSON summary payload when completed; () until then
+# + errorMessage - Failure message when status is failed
+public type ProviderMemberMatchJob record {|
+    string jobId;
+    string providerIdentifier;
+    ProviderMemberMatchStatus status;
+    time:Utc createdAt;
+    time:Utc? completedAt;
+    readonly & map<json>? result;
+    string? errorMessage;
+|};
+
+// ============================================================================
+// Da Vinci Data Export Async Job Types
+// ============================================================================
+
+# Status enum for async Da Vinci data export jobs
+public enum DaVinciExportStatus {
+    DAVINCI_EXPORT_PENDING = "pending",
+    DAVINCI_EXPORT_PROCESSING = "processing",
+    DAVINCI_EXPORT_COMPLETED = "completed",
+    DAVINCI_EXPORT_FAILED = "failed"
+}
+
+# One entry in the Bulk Data manifest output or error array
+#
+# + 'type - FHIR resource type contained in the file
+# + url - Absolute URL to the NDJSON file
+# + count - Number of resources in the file (optional)
+public type BulkDataOutputFile record {|
+    string 'type;
+    string url;
+    int count?;
+|};
+
+# Export manifest returned when a Da Vinci data export job completes.
+# Follows the FHIR Bulk Data Access IG completed-status response format.
+#
+# + transactionTime - Server time when the export query ran
+# + request - Full URL of the original kick-off request
+# + requiresAccessToken - Whether downloading files requires a bearer token
+# + output - NDJSON file download links, grouped by resource type
+# + error - OperationOutcome NDJSON files describing any export errors (omitted if none)
+public type DaVinciExportResult record {|
+    string transactionTime;
+    string request;
+    boolean requiresAccessToken;
+    BulkDataOutputFile[] output;
+    BulkDataOutputFile[] 'error?;
+|};
+
+# Internal record tracking an async Da Vinci data export job
+#
+# + jobId - Unique job identifier
+# + status - Current job status
+# + createdAt - Job creation timestamp
+# + completedAt - Job completion timestamp (null if not yet done)
+# + result - Export result when completed (null otherwise)
+# + errorMessage - Error description if the job failed
+public type DaVinciExportJob record {|
+    string jobId;
+    DaVinciExportStatus status;
+    time:Utc createdAt;
+    time:Utc? completedAt;
+    (DaVinciExportResult & readonly)? result;
+    string? errorMessage;
+|};
+
+// ============================================================================
+// Re-exported FHIR Base Types from r4
+// ============================================================================
+
+# FHIR Meta type
+public type Meta r4:Meta;
+
+# FHIR Reference type
+public type Reference r4:Reference;
+
+# FHIR Identifier type
+public type Identifier r4:Identifier;
+
+# FHIR CodeableConcept type
+public type CodeableConcept r4:CodeableConcept;
+
+# FHIR Coding type
+public type Coding r4:Coding;
+
+# FHIR Extension type
+public type Extension r4:Extension;
+
+# FHIR Period type
+public type Period r4:Period;
+
+public enum ResourceType {
+    ALLERGY_INTOLERENCE = "AllergyIntolerance",
+    CARE_PLAN = "CarePlan",
+    CLAIM = "Claim",
+    CLAIM_RESPONSE = "ClaimResponse",
+    CODE_SYSTEM = "CodeSystem",
+    COMMUNICATION_REQUEST = "CommunicationRequest",
+    CONCEPT_MAP = "ConceptMap",
+    CONDITION = "Condition",
+    COVERAGE = "Coverage",
+    DEVICE = "Device",
+    DIAGNOSTIC_REPORT = "DiagnosticReport",
+    DOCUMENT_REFERENCE = "DocumentReference",
+    ENCOUNTER = "Encounter",
+    GOAL = "Goal",
+    IMMUNIZATION = "Immunization",
+    INSURANCE_PLAN = "InsurancePlan",
+    LIBRARY = "Library",
+    LOCATION = "Location",
+    MEDICATION_REQUEST = "MedicationRequest",
+    MEDICATION_KNOWLEDGE = "MedicationKnowledge",
+    OBSERVATION = "Observation",
+    ORGANIZATION = "Organization",
+    PATIENT = "Patient",
+    PRACTITIONER = "Practitioner",
+    PRACTITIONER_ROLE = "PractitionerRole",
+    PROCEDURE = "Procedure",
+    PROVENANCE = "Provenance",
+    QUESTIONNAIRE = "Questionnaire",
+    QUESTIONNAIRE_PACKAGE = "QuestionnairePackage",
+    QUESTIONNAIRE_RESPONSE = "QuestionnaireResponse",
+    SCHEDULE = "Schedule",
+    SLOT = "Slot",
+    EXPLANATION_OF_BENEFIT = "ExplanationOfBenefit",
+    GROUP = "Group",
+    SERVICE_REQUEST = "ServiceRequest",
+    VALUE_SET = "ValueSet",
+    CARE_TEAM = "CareTeam",
+    MEDICATION = "Medication",
+    MEDICATION_DISPENSE = "MedicationDispense",
+    RELATED_PERSON = "RelatedPerson",
+    SPECIMEN = "Specimen",
+    AUDIT_EVENT = "AuditEvent"
+}
+
+# Holds information for OAuth2 authentication.
+#
+# + tokenUrl - Token URL of the token endpoint
+# + clientId - Client ID of the client authentication
+# + clientSecret - Client secret of the client authentication
+type AuthConfig record {|
+    string tokenUrl;
+    string clientId;
+    string clientSecret;
+|};
+
+# Holds member match parameter information.
+#
+# + profile - The parameter profile 
+# + typeDesc - The Ballerina type descriptor for the parameter
+type ParameterInfo record {|
+    readonly string profile;
+    readonly typedesc<anydata> typeDesc;
+|};
+
+// ######################################################################################################################
+// # Model Configs                                                                                                      #
+// ######################################################################################################################
+
+# Configs for server
+#
+# + url - Canonical identifier for this capability statement, represented as a URI (globally unique)
+# + 'version - Business version of the capability statement
+# + name - Name for this capability statement (computer friendly)  
+# + title - Name for this capability statement (human friendly)
+# + status - Code: draft | active | retired | unknown
+# + experimental - For testing purposes, not real usage
+# + date - Date last changed
+# + kind - Code: instance | capability | requirements
+# + implementationUrl - Base URL for the installation
+# + implementationDescription - Describes this specific instance
+# + fhirVersion - FHIR Version the system supports
+# + format - formats supported (xml | json | ttl | mime type)
+# + patchFormat - Patch formats supported
+public type ConfigFHIRServer record {|
+    string url?;
+    string 'version?;
+    string name?;
+    string title?;
+    international401:CapabilityStatementStatus status;
+    boolean experimental?;
+    string date?;
+    international401:CapabilityStatementKind kind;
+    string implementationUrl?;
+    string implementationDescription;
+    string fhirVersion;
+    international401:CapabilityStatementFormat[] format;
+    string[] patchFormat?;
+|};
+
+# If the endpoint is a RESTful one
+# Rule: A given resource can only be described once per RESTful mode.
+#
+# + mode - Code: client | server  
+# + documentation - General description of implementation  
+# + security - Information about security of implementation  
+# + resourceFilePath - Path to the file containing resources
+# + interaction - Operations supported  
+# + searchParam - Search parameters for searching all resources
+public type ConfigRest record {|
+    string? mode = REST_MODE_SERVER;
+    string documentation?;
+    ConfigSecurity security?;
+    string resourceFilePath?;
+    string[] interaction?;
+    string[] searchParam?;
+|};
+
+# Configs for server security
+#
+# + cors - Enable cors or not  
+# + discoveryEndpoint - Discovery endpoint for the FHIR server  
+# + tokenEndpoint - Token endpoint for the FHIR server  
+# + revocationEndpoint - Revoke endpoint for the FHIR server  
+# + authorizeEndpoint - Authorization endpoint for the FHIR server  
+# + introspectEndpoint - Introspect endpoint for the FHIR server  
+# + managementEndpoint - Manage endpoint for the FHIR server  
+# + registrationEndpoint - Register endpoint for the FHIR server
+public type ConfigSecurity record {
+    boolean cors?;
+    string discoveryEndpoint?;
+    string tokenEndpoint?;
+    string revocationEndpoint?;
+    string authorizeEndpoint?;
+    string introspectEndpoint?;
+    string managementEndpoint?;
+    string registrationEndpoint?;
+};
+
+# Configs for resource.
+#
+# + 'type - A resource type that is supported
+# + versioning - no-version | versioned | versioned-update
+# + conditionalCreate - If allows/uses conditional create
+# + conditionalRead - not-supported | modified-since | not-match | full-support
+# + conditionalUpdate - If allows/uses conditional update
+# + conditionalDelete - not-supported | single | multiple - how conditional delete is supported
+# + referencePolicy - literal | logical | resolves | enforced | local
+# + searchInclude - _include values supported by the server
+# + searchRevInclude - _revinclude values supported by the server
+# + supportedProfile - Use-case specific profiles
+# + interaction - Operations supported
+# + searchParamNumber - Numeric search parameters supported by implementation
+# + searchParamDate - Date search parameters supported by implementation
+# + searchParamString - String search parameters supported by implementation
+# + searchParamToken - Token search parameters supported by implementation
+# + searchParamReference - Reference search parameters supported by implementation
+# + searchParamComposite - Composite search parameters supported by implementation
+# + searchParamQuantity - Quantity search parameters supported by implementation
+# + searchParamURI - URI search parameters supported by implementation
+# + searchParamSpecial - Special search parameters supported by implementation
+public type ConfigResource record {
+    string 'type;
+    string versioning?;
+    boolean conditionalCreate?;
+    string conditionalRead?;
+    boolean conditionalUpdate?;
+    string conditionalDelete?;
+    string[] referencePolicy?;
+    string[] searchInclude?;
+    string[] searchRevInclude?;
+    string[] supportedProfile?;
+    string[] interaction?;
+    string[] searchParamNumber?;
+    string[] searchParamDate?;
+    string[] searchParamString?;
+    string[] searchParamToken?;
+    string[] searchParamReference?;
+    string[] searchParamComposite?;
+    string[] searchParamQuantity?;
+    string[] searchParamURI?;
+    string[] searchParamSpecial?;
+};
+
+# Smart configuration record
+#
+# + discoveryEndpoint - Smart configuration discoveryEndpoint
+# + smartConfiguration - Smart configuration
+public type Configs record {|
+    string discoveryEndpoint?;
+    ConfigSmartConfiguration smartConfiguration?;
+|};
+
+# Smart configuration record
+#
+# + issuer - Smart configuration issuer  
+# + jwksUri - Smart configuration jwks_uri  
+# + authorizationEndpoint - Smart configuration authorization_endpoint  
+# + grantTypesSupported - Smart configuration grant_type_supported  
+# + tokenEndpoint - Smart configuration token_endpoint  
+# + tokenEndpointAuthMethodsSupported - Smart configuration token_endpoint_auth_methods_supported  
+# + tokenEndpointAuthSigningAlgValuesSupported - Smart configuration token endpoint auth signing alg values supported
+# + registrationEndpoint - Smart configuration registration_endpoint  
+# + scopesSupported - Smart configuration scopes_supported  
+# + responseTypesSupported - Smart configuration response_type_supported  
+# + managementEndpoint - Smart configuration management_endpoint  
+# + introspectionEndpoint - Smart configuration introspection_endpoint  
+# + revocationEndpoint - Smart configuration revocation_endpoint  
+# + capabilities - Smart configuration capabilities  
+# + codeChallengeMethodsSupported - Smart configuration code_challenge_methods_supported
+public type ConfigSmartConfiguration record {|
+    string issuer?;
+    string jwksUri?;
+    string authorizationEndpoint?;
+    string[] grantTypesSupported?;
+    string tokenEndpoint?;
+    string[] tokenEndpointAuthMethodsSupported?;
+    string[] tokenEndpointAuthSigningAlgValuesSupported?;
+    string registrationEndpoint?;
+    string[] scopesSupported?;
+    string[] responseTypesSupported?;
+    string managementEndpoint?;
+    string introspectionEndpoint?;
+    string revocationEndpoint?;
+    string[] capabilities;
+    string[] codeChallengeMethodsSupported?;
+|};
+
+// ######################################################################################################################
+// # OpenID configuration.                                                                                              #
+// ######################################################################################################################
+
+# OpenID configuration.
+#
+# + token_endpoint - token endpoint
+# + authorization_endpoint - authorization endpoint
+# + revocation_endpoint - revocation endpoint  
+# + introspection_endpoint - introspection endpoint  
+# + registration_endpoint - registration endpoint
+# + management_endpoint - management endpoint
+# + issuer - issuer  
+# + device_authorization_endpoint - device authorization endpoint  
+# + userinfo_endpoint - userinfo endpoint
+# + jwks_uri - jwks uri
+# + grant_types_supported - grant types supported
+# + response_types_supported - response types supported
+# + subject_types_supported - subject types supported
+# + id_token_signing_alg_values_supported - id token signing alg values supported
+# + scopes_supported - scopes supported
+# + token_endpoint_auth_methods_supported - token endpoint auth methods supported
+# + claims_supported - claims supported
+# + code_challenge_methods_supported - code challenge methods supported
+
+public type OpenIDConfiguration record {
+    string token_endpoint?;
+    string authorization_endpoint?;
+    string revocation_endpoint?;
+    string introspection_endpoint?;
+    string registration_endpoint?;
+    string management_endpoint?;
+    string issuer?;
+    string device_authorization_endpoint?;
+    string userinfo_endpoint?;
+    string jwks_uri?;
+    string[] grant_types_supported?;
+    string[] response_types_supported?;
+    string[] subject_types_supported?;
+    string[] id_token_signing_alg_values_supported?;
+    string[] scopes_supported?;
+    string[] token_endpoint_auth_methods_supported?;
+    string[] claims_supported?;
+    string[] code_challenge_methods_supported?;
+};
+
+# Smart configuration record
+#
+# + issuer - Smart configuration issuer  
+# + jwks_uri - Smart configuration jwks_uri  
+# + authorization_endpoint - Smart configuration authorization_endpoint  
+# + grant_types_supported - Smart configuration grant_type_supported  
+# + token_endpoint - Smart configuration token_endpoint  
+# + token_endpoint_auth_methods_supported - Smart configuration token_endpoint_auth_methods_supported  
+# + token_endpoint_auth_signing_alg_values_supported - Smart configuration token endpoint auth signing alg values supported
+# + registration_endpoint - Smart configuration registration_endpoint  
+# + scopes_supported - Smart configuration scopes_supported  
+# + response_types_supported - Smart configuration response_type_supported  
+# + management_endpoint - Smart configuration management_endpoint  
+# + introspection_endpoint - Smart configuration introspection_endpoint  
+# + revocation_endpoint - Smart configuration revocation_endpoint  
+# + capabilities - Smart configuration capabilities  
+# + code_challenge_methods_supported - Smart configuration code_challenge_methods_supported
+public type SmartConfiguration record {|
+    string issuer?;
+    string jwks_uri?;
+    string authorization_endpoint;
+    string[] grant_types_supported;
+    string token_endpoint;
+    string[] token_endpoint_auth_methods_supported?;
+    string[] token_endpoint_auth_signing_alg_values_supported?;
+    string registration_endpoint?;
+    string[] scopes_supported?;
+    string[] response_types_supported?;
+    string management_endpoint?;
+    string introspection_endpoint?;
+    string revocation_endpoint?;
+    string[] capabilities;
+    string[] code_challenge_methods_supported;
+|};
+
+# Record for consent evaluation result
+#
+# + isValid - Indicates if the consent is valid
+# + patientId - The ID of the patient associated with the consent
+# + reason - The reason for the consent evaluation result
+# + memberIdentity - The identity of the member associated with the consent
+# + consentPolicy - The policy under which the consent was obtained
+# + consentStartDate - The start date of the consent period
+# + consentEndDate - The end date of the consent period
+# + requestingPayer - The identity of the requesting payer
+public type ConsentEvaluationResult record {|
+    boolean isValid;
+    string? patientId;
+    string? reason;
+    string? memberIdentity;
+    string? consentPolicy;
+    r4:dateTime? consentStartDate;
+    r4:dateTime? consentEndDate;
+    string? requestingPayer;
+|};
+
+// Supporting type definitions for the response
+type ConsentEvaluationResponse record {
+    int statusCode;
+    boolean success;
+    international401:Parameters? parameters = ();
+    r4:OperationOutcome? operationOutcome = ();
+};
+
+// ============================================================================
+// Internal Database Models (non-FHIR)
+// ============================================================================
+
+# Internal record for storing claim data
+#
+# + claim_id - Claim ID  
+# + claimresponse_id - ClaimResponse ID  
+# + organization_id - Organization ID  
+# + patient_member_id - Patient Member ID  
+# + status - Status  
+# + payload - Payload  
+# + created_at - Created At  
+# + updated_at - Updated At
+public type ClaimRecord record {|
+    string claim_id;
+    string claimresponse_id;
+    string organization_id;
+    string patient_member_id;
+    string status;
+    json payload;
+    time:Utc created_at;
+    time:Utc updated_at;
+|};
+
+# Internal record for storing subscription data
+#
+# + id - Subscription ID  
+# + organization_id - Organization ID  
+# + status - Status  
+# + endpoint - Endpoint  
+# + auth_header - Auth Header  
+# + payload_type - Payload Type  
+# + created_at - Created At  
+# + end_datetime - End Datetime  
+# + failure_count - Failure Count
+public type SubscriptionRecord record {|
+    string id;
+    string organization_id;
+    string status;
+    string endpoint;
+    string? auth_header;
+    string payload_type;
+    time:Utc created_at;
+    time:Utc? end_datetime;
+    int failure_count;
+|};
+
+# Notification event for internal processing
+#
+# + subscriptionId - Subscription ID  
+# + claimResponseId - ClaimResponse ID  
+# + organizationId - Organization ID  
+# + eventType - Event Type  
+# + timestamp - Timestamp  
+# + payload - Payload
+public type NotificationEvent record {|
+    string subscriptionId;
+    string claimResponseId;
+    string organizationId;
+    string eventType; // handshake | event-notification | heartbeat
+    time:Utc timestamp;
+    json? payload;
+|};
+
+// ============================================================================
+// Notification Bundle Types (R4 Backport specific)
+// ============================================================================
+
+# Notification Bundle for FHIR R4 Subscription Backport
+#
+# + resourceType - Resource Type  
+# + id - ID  
+# + meta - Meta  
+# + type - Type  
+# + timestamp - Timestamp  
+# + entry - Entry
+public type NotificationBundle record {
+    string resourceType = "Bundle";
+    string id?;
+    r4:Meta meta?;
+    string 'type; // history
+    string timestamp;
+    NotificationBundleEntry[] entry;
+};
+
+# Bundle entry for notification
+#
+# + fullUrl - Full URL  
+# + resource - Resource  
+# + request - Request  
+# + response - Response
+public type NotificationBundleEntry record {
+    string fullUrl?;
+    json? 'resource?;
+    BundleRequest? request?;
+    BundleResponse? response?;
+};
+
+# Bundle request element
+#
+# + method - Method  
+# + url - URL
+public type BundleRequest record {
+    string method;
+    string url;
+};
+
+# Bundle response element
+#
+# + status - Status  
+# + location - Location
+public type BundleResponse record {
+    string status;
+    string location?;
+};
+
+# SubscriptionStatus as Parameters (R4 Backport)
+#
+# + resourceType - Resource Type  
+# + id - ID  
+# + meta - Meta  
+# + parameter - Parameter
+public type SubscriptionStatusParameters record {
+    string resourceType = "Parameters";
+    string id?;
+    r4:Meta meta?;
+    SubscriptionStatusParameter[] 'parameter;
+};
+
+# Parameter entry for SubscriptionStatus
+#
+# + name - Name  
+# + valueString - Value String  
+# + valueCode - Value Code  
+# + valueInstant - Value Instant  
+# + valueReference - Value Reference  
+# + valueCanonical - Value Canonical  
+# + part - Part
+public type SubscriptionStatusParameter record {
+    string name;
+    string? valueString?;
+    string? valueCode?;
+    string? valueInstant?;
+    r4:Reference? valueReference?;
+    string? valueCanonical?;
+    SubscriptionStatusParameter[]? part?;
+};
+
+# X12 connection config, to connect to X12 serverice for translating X12 <--> FHIR.
+# 
+# + enable - whether to enable the X12 connection
+# + url - Base URL of the X12 service
+# + tokenUrl - token endpoint URL
+# + clientId - client ID
+# + clientSecret - client secret
+# + authEnabled - whether authentication is enabled for the X12 connection
+public type X12ConnectionConfig record {|
+    boolean enable = false;
+    string url;
+    string tokenUrl?;
+    string clientId?;
+    string clientSecret?;
+    boolean authEnabled = false;
+|};
+
+# Payload for FHIR to X12 service
+# + payload - The FHIR resource payload to be sent to the X12 service
+# + x12Headers - The headers to be included in the request to the X12 service
+public type FhirToX12ServicePayload record {|
+    json payload;
+    json x12Headers;
+|};
+
+public enum ClaimPriority {
+    NORMAL = "normal",
+    STAT = "stat",
+    DEFERRED = "deferred"
+}
+
+//todo: Remove integer mappings and use string mappings after this issue is fixed: https://github.com/wso2-enterprise/moesif-internal/issues/7
+// Claim type
+final int STANDARD = 1;
+final int EXPEDITED = 2;
+
+// Claim statuses
+final int APPROVED = 3;
+final int PARTIALLY_APPROVED = 4;
+final int DENIED = 5;
+
+public enum X12ReviewActionCodes {
+    A1 = "A1", // Approved
+    A2 = "A2", // Partially Approved
+    A3 = "A3" // Denied
+}
+
+public enum ClaimResponseOutcome {
+    COMPLETED = "complete"
+}

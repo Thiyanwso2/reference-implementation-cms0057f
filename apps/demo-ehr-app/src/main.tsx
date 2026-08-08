@@ -42,7 +42,14 @@ import DeviceOrderPageV2 from "./pages/device_order_page_v2.tsx";
 import DrugClaimPage from "./pages/drug_claim_page.tsx";
 import LoginV2 from "./pages/login_v2.tsx";
 import { AuthProvider } from "./components/AuthProvider.tsx";
+import HomePage from "./pages/home_page.tsx";
 import PatientEncounterV2 from "./pages/patient_encounter_v2.tsx";
+import { DoctorViewPage } from "./pages/doctor_view.tsx";
+import { PatientHistoryPage } from "./pages/patient_history.tsx";
+import PriorAuthList from "./pages/prior_auth_list.tsx";
+import PriorAuthView from "./pages/prior_auth_view.tsx";
+import ProviderDataAccess from "./pages/provider_data_access.tsx";
+import DtrLaunchPage from "./pages/dtr_launch_page.tsx";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <Provider store={store}>
@@ -53,9 +60,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <AuthProvider>
               <Routes>
                 <Route path="/login" element={<LoginV2 />} />
-                <Route path="/" element={<PatientEncounterV2 />} />
+                <Route path="/" element={<Layout />}>
+                  <Route index element={<HomePage />} />
+                  <Route path="patient-encounter" element={<PatientEncounterV2 />} />
+                  <Route path="provider-data-access" element={<ProviderDataAccess />} />
+                </Route>
                 <Route path="dashboard/*" element={<Layout />}>
                   <Route index element={<PractionerDashBoard />} />
+                  <Route path="doctor" element={<DoctorViewPage />} />
                   <Route path="medical-imaging" element={<MedicalImaging />} />
                   <Route
                     path="medical-imaging/prior-auth"
@@ -83,10 +95,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                     path="drug-order-v2/prior-auth/*"
                     element={<DrugPiorAuthPage />}
                   />
-                  <Route
-                    path="drug-order-v2/claim-submit/*"
-                    element={<DrugClaimPage />}
-                  />
+                  <Route path="claim-submit/*" element={<DrugClaimPage />} />
                   <Route
                     path="drug-order/:drugName"
                     element={<DrugDetailsPage />}
@@ -117,6 +126,19 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                     element={<CoverageCardDisplayPage />}
                   />
                   <Route path="patient" element={<PatientViewPage />} />
+                  <Route
+                    path="patient-history"
+                    element={<PatientHistoryPage />}
+                  />
+                  <Route
+                    path="prior-auth-list"
+                    element={<PriorAuthList />}
+                  />
+                  <Route
+                    path="prior-auth-list/:claimId"
+                    element={<PriorAuthView />}
+                  />
+                  <Route path="dtr-launch" element={<DtrLaunchPage />} />
                 </Route>
 
                 <Route path="settings" element={<div>Not Implemented</div>} />

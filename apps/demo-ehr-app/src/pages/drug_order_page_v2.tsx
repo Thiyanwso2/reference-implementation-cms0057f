@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "../assets/styles/main.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "react-datepicker/dist/react-datepicker.css";
@@ -24,32 +24,68 @@ import Select, { ActionMeta, SingleValue } from "react-select";
 import Card from "react-bootstrap/Card";
 import DatePicker from "react-datepicker";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  updateCdsHook,
-  updateRequest,
-  updateRequestUrl,
-  updateRequestMethod,
-  resetCdsRequest,
-} from "../redux/cdsRequestSlice";
-import { resetCdsResponse, updateCdsResponse } from "../redux/cdsResponseSlice";
+import { updateCdsResponse } from "../redux/cdsResponseSlice";
 import {
   updateMedicationFormData,
   resetMedicationFormData,
 } from "../redux/medicationFormDataSlice";
 
 import {
-  FREQUENCY_OPTIONS,
   MEDICATION_OPTIONS,
   CHECK_PAYER_REQUIREMENTS_REQUEST_BODY,
   TREATMENT_OPTIONS,
   CREATE_MEDICATION_REQUEST_BODY,
-  PATIENT_DETAILS,
+  FREQUENCY_UNITS,
 } from "../constants/data";
 import { CdsCard, CdsResponse } from "../components/interfaces/cdsCard";
 import axios from "axios";
 import { useAuth } from "../components/AuthProvider";
 import { Navigate } from "react-router-dom";
-import { Alert, Snackbar } from "@mui/material";
+import { Alert, Box, Snackbar, Step, StepLabel, Stepper } from "@mui/material";
+import PatientInfo from "../components/PatientInfo";
+import { CdsHookCardsSection } from "../components/cds_hook_card";
+import {
+  appendRequestLog,
+  clearRequestLogs,
+  resetCurrentRequest,
+  updateCurrentRequest,
+  updateCurrentRequestMethod,
+  updateCurrentRequestUrl,
+  updateCurrentResponse,
+  updateIsProcess,
+} from "../redux/currentStateSlice";
+import {
+  StepStatus,
+  updateActiveStep,
+  updateSingleStep,
+  updateStepsArray,
+} from "../redux/commonStoargeSlice";
+import {
+  CDS_HOOK,
+  CDS_REQUEST,
+  CDS_REQUEST_METHOD,
+  CDS_REQUEST_URL,
+  CDS_RESPONSE,
+  MEDICATION_REQUEST,
+  MEDICATION_REQUEST_URL,
+  MEDICATION_RESPONSE,
+  QUESTIONNAIRE_PACKAGE_REQUEST,
+  QUESTIONNAIRE_PACKAGE_REQUEST_METHOD,
+  QUESTIONNAIRE_PACKAGE_RESPONSE,
+  QUESTIONNAIRE_PACKAGE_URL,
+  SELECTED_PATIENT_ID,
+  TIMESTAMP,
+} from "../constants/localStorageVariables";
+import { HTTP_METHODS } from "../constants/enum";
+
+interface Operation {
+  name: string;
+  isCompleted: boolean;
+}
+
+const timeout = (delay: number) => {
+  return new Promise((res) => setTimeout(res, delay));
+};
 
 const PrescribeForm = ({
   setCdsCards,
@@ -57,9 +93,24 @@ const PrescribeForm = ({
   setCdsCards: React.Dispatch<React.SetStateAction<CdsCard[]>>;
 }) => {
   const dispatch = useDispatch();
+  const [activeOperation, setActiveOperation] = useState(-1);
+  const [operations, setOperations] = useState<Operation[]>([
+    { name: "Create medication request", isCompleted: false },
+    { name: "Check payer requirements", isCompleted: false },
+  ]);
 
   useEffect(() => {
     dispatch(resetMedicationFormData());
+    dispatch(updateIsProcess(true));
+    dispatch(
+      updateStepsArray([
+        { name: "Medication request", status: StepStatus.NOT_STARTED },
+        { name: "Check Payer Requirements", status: StepStatus.NOT_STARTED },
+        { name: "Questionnaire package", status: StepStatus.NOT_STARTED },
+        { name: "Questionnaire Response", status: StepStatus.NOT_STARTED },
+        { name: "Claim Submit", status: StepStatus.NOT_STARTED },
+      ])
+    );
   }, [dispatch]);
 
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -73,21 +124,30 @@ const PrescribeForm = ({
       medicationFormData: {
         treatingSickness: string;
         medication: string;
-        quantity: number;
-        frequency: string;
-        duration: string;
-        startDate: Date;
+        frequency: number;
+        frequencyUnit: string;
+        period: number;
+        startDate: string | null;
       };
     }) => state.medicationFormData
   );
 
-  const [patientId] = useState("john-smith");
+  const patientId = localStorage.getItem(SELECTED_PATIENT_ID) || "";
+  const loggedUserStr = localStorage.getItem("loggedUser");
+  const loggedUser = loggedUserStr ? JSON.parse(loggedUserStr) : null;
+
+  console.log("loggedUser", loggedUser);
   const [practionerId] = useState("456");
   const [isSubmited, setIsSubmited] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    dispatch(updateMedicationFormData({ [name]: value }));
+    dispatch(
+      updateMedicationFormData({
+        [name]:
+          name === "frequency" || name === "period" ? Number(value) : value,
+      })
+    );
   };
 
   const handleSelectChange = (
@@ -104,7 +164,7 @@ const PrescribeForm = ({
   };
 
   const handleDateSelectChange = (date: Date | null) => {
-    dispatch(updateMedicationFormData({ startDate: date as Date | null }));
+    dispatch(updateMedicationFormData({ startDate: date ? date.toISOString() : null }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -112,26 +172,46 @@ const PrescribeForm = ({
   };
 
   const handleCheckPayerRequirements = () => {
-    dispatch(resetCdsRequest());
-    dispatch(resetCdsResponse());
+    dispatch(updateActiveStep(1));
+    setActiveOperation(1);
+    dispatch(
+      updateSingleStep({
+        stepName: "Check Payer Requirements",
+        newStatus: StepStatus.IN_PROGRESS,
+      })
+    );
 
+    const Config = window.Config;
     const payload = CHECK_PAYER_REQUIREMENTS_REQUEST_BODY(
       patientId,
       practionerId,
-      medicationFormData.medication as string,
-      medicationFormData.quantity as number
+      Config.fhirServerUrl
     );
-    setCdsCards([]);
-    dispatch(updateCdsHook("order-sign"));
-    dispatch(updateRequestMethod("POST"));
-    dispatch(updateRequestUrl("/cds-services/prescirbe-medication"));
-    dispatch(updateRequest(payload));
 
-    const Config = window.Config;
+    setCdsCards([]);
+    localStorage.setItem(CDS_HOOK, "order-sign");
+    localStorage.setItem(CDS_REQUEST_METHOD, HTTP_METHODS.POST);
+    localStorage.setItem(
+      CDS_REQUEST_URL,
+      Config.demoBaseUrl + Config.prescribe_medication
+    );
+    localStorage.setItem(CDS_REQUEST, JSON.stringify(payload));
 
     axios
-      .post<CdsResponse>(Config.prescribe_medication, payload)
+      .post<CdsResponse>(Config.prescribe_medication, payload, {
+        headers: {
+          "Content-Type": "application/fhir+json",
+        },
+      })
       .then<CdsResponse>((res) => {
+        dispatch(
+          appendRequestLog({
+            method: HTTP_METHODS.POST,
+            url: Config.demoBaseUrl + Config.prescribe_medication,
+            request: payload,
+            response: res.data,
+          })
+        );
         if (res.status >= 200 && res.status < 300) {
           setAlertMessage("Payer requirements retrieved successfully!");
           setAlertSeverity("success");
@@ -143,23 +223,48 @@ const PrescribeForm = ({
 
         setCdsCards(res.data.cards);
 
-        dispatch(updateCdsResponse({ cards: res.data, systemActions: {} }));
+        localStorage.setItem(
+          CDS_RESPONSE,
+          JSON.stringify({ cards: res.data, systemActions: {} })
+        );
+        setOperations((prev) =>
+          prev.map((op) => {
+            if (op.name === "Check payer requirements") {
+              return {
+                name: op.name,
+                isCompleted: true,
+              };
+            }
+            return op;
+          })
+        );
+        setIsSubmited(true);
+        dispatch(
+          updateSingleStep({
+            stepName: "Check Payer Requirements",
+            newStatus: StepStatus.COMPLETED,
+          })
+        );
         return res.data;
       })
       .catch((err) => {
         setAlertMessage("Error retrieving payer requirements!");
         setAlertSeverity("error");
         setOpenSnackbar(true);
-        dispatch(updateCdsResponse({ cards: err, systemActions: {} }));
+        localStorage.setItem(
+          CDS_RESPONSE,
+          JSON.stringify({ cards: err, systemActions: {} })
+        );
       });
   };
-  const validateForm = () => {
+
+  const validateFormRequiredFields = () => {
     const requiredFields: (keyof typeof medicationFormData)[] = [
       "treatingSickness",
       "medication",
-      "quantity",
       "frequency",
-      "duration",
+      "frequencyUnit",
+      "period",
       "startDate",
     ];
     let isValid = true;
@@ -171,26 +276,88 @@ const PrescribeForm = ({
     return isValid;
   };
 
+  const validateForm = () => {
+    if (!validateFormRequiredFields()) {
+      setAlertMessage("Please fill all required fields");
+      setAlertSeverity("error");
+      setOpenSnackbar(true);
+      return false;
+    }
+
+    if (medicationFormData.frequency <= 0) {
+      setAlertMessage("Frequency must be greater than 0");
+      setAlertSeverity("error");
+      setOpenSnackbar(true);
+      return false;
+    }
+    if (medicationFormData.period <= 0) {
+      setAlertMessage("Period must be greater than 0");
+      setAlertSeverity("error");
+      setOpenSnackbar(true);
+      return false;
+    }
+    return true;
+  };
+
   const handleCreateMedicationOrder = () => {
     if (!validateForm()) {
       return;
     }
-    dispatch(resetCdsRequest());
-    dispatch(resetCdsResponse());
+    dispatch(updateActiveStep(0));
+    dispatch(clearRequestLogs());
+    dispatch(
+      updateSingleStep({
+        stepName: "Medication request",
+        newStatus: StepStatus.IN_PROGRESS,
+      })
+    );
 
-    const payload = CREATE_MEDICATION_REQUEST_BODY();
-    dispatch(updateRequestMethod("POST"));
-    dispatch(updateRequestUrl("/fhir/r4/MedicationRequest"));
-    dispatch(updateRequest(payload));
+    setActiveOperation(0);
+    dispatch(resetCurrentRequest());
+    console.log("medicationFormData", medicationFormData);
 
+    const payload = CREATE_MEDICATION_REQUEST_BODY(
+      patientId,
+      practionerId,
+      medicationFormData.medication,
+      medicationFormData.frequency,
+      medicationFormData.frequencyUnit,
+      medicationFormData.period,
+      medicationFormData.startDate ? medicationFormData.startDate.split("T")[0] : ""
+    );
     const Config = window.Config;
+
+    localStorage.setItem(MEDICATION_REQUEST, HTTP_METHODS.POST);
+    localStorage.setItem(
+      MEDICATION_REQUEST_URL,
+      Config.demoHospitalUrl + Config.medication_request
+    );
+    localStorage.setItem(MEDICATION_REQUEST, JSON.stringify(payload));
+
+    dispatch(updateIsProcess(true));
+    dispatch(updateCurrentRequestMethod(HTTP_METHODS.POST));
+    dispatch(
+      updateCurrentRequestUrl(
+        Config.demoHospitalUrl + Config.medication_request
+      )
+    );
+    dispatch(updateCurrentRequest(payload));
+
     axios
       .post<CdsResponse>(Config.medication_request, payload, {
         headers: {
           "Content-Type": "application/fhir+json",
         },
       })
-      .then<CdsResponse>((res) => {
+      .then<CdsResponse>(async (res) => {
+        dispatch(
+          appendRequestLog({
+            method: HTTP_METHODS.POST,
+            url: Config.demoHospitalUrl + Config.medication_request,
+            request: payload,
+            response: res.data,
+          })
+        );
         if (res.status >= 200 && res.status < 300) {
           setAlertMessage("Medication order created successfully!");
           setAlertSeverity("success");
@@ -199,8 +366,27 @@ const PrescribeForm = ({
           setAlertSeverity("error");
         }
         setOpenSnackbar(true);
-        dispatch(updateCdsResponse({ cards: res.data, systemActions: {} }));
-        setIsSubmited(true);
+        localStorage.setItem(MEDICATION_RESPONSE, JSON.stringify(res.data));
+        dispatch(updateCurrentResponse(res.data));
+        setOperations((prev) =>
+          prev.map((op) => {
+            if (op.name === "Create medication request") {
+              return {
+                name: op.name,
+                isCompleted: true,
+              };
+            }
+            return op;
+          })
+        );
+        await timeout(3000);
+        dispatch(
+          updateSingleStep({
+            stepName: "Medication request",
+            newStatus: StepStatus.COMPLETED,
+          })
+        );
+        handleCheckPayerRequirements();
         return res.data;
       })
       .catch((err) => {
@@ -216,269 +402,267 @@ const PrescribeForm = ({
   };
 
   return (
-    <Card style={{ marginTop: "30px", padding: "20px" }}>
-      <Card.Body>
-        <Card.Title>Prescribe Medicine</Card.Title>
-        <Form onSubmit={handleSubmit}>
-          <Form.Group
-            controlId="formTreatingSickness"
-            style={{ marginTop: "20px" }}
-          >
-            <Form.Label>
-              Treating <span style={{ color: "red" }}>*</span>
-            </Form.Label>
-            <Select
-              name="treatingSickness"
-              options={TREATMENT_OPTIONS}
-              isSearchable
-              onChange={handleSelectChange}
-              required
-            />
-          </Form.Group>
-
-          <Form.Group controlId="formMedication" style={{ marginTop: "20px" }}>
-            <Form.Label>
-              Medication <span style={{ color: "red" }}>*</span>
-            </Form.Label>
-            <Select
-              name="medication"
-              options={MEDICATION_OPTIONS}
-              isSearchable
-              onChange={handleSelectChange}
-              menuPosition="fixed"
-              required
-            />
-          </Form.Group>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "20px",
-            }}
-          >
-            <Form.Group
-              controlId="formQuantity"
-              style={{ marginTop: "20px", flex: "1 1 100%" }}
-            >
-              <Form.Label>
-                Quantity <span style={{ color: "red" }}>*</span>
-              </Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="Enter quantity"
-                name="quantity"
-                onChange={handleInputChange}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group
-              controlId="formFrequency"
-              style={{ marginTop: "20px", flex: "1 1 100%" }}
-            >
-              <Form.Label>
-                Frequency <span style={{ color: "red" }}>*</span>
-              </Form.Label>
-              <Select
-                name="frequency"
-                options={FREQUENCY_OPTIONS}
-                isSearchable
-                onChange={handleSelectChange}
-                menuPosition={"fixed"}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group
-              controlId="formDuration"
-              style={{ marginTop: "20px", flex: "1 1 100%" }}
-            >
-              <Form.Label>
-                Duration<span style={{ color: "red" }}>*</span>
-              </Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="Enter duration"
-                name="duration"
-                onChange={handleInputChange}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group
-              controlId="formStartDate"
-              style={{ marginTop: "20px", flex: "1 1 100%", width: "100%" }}
-            >
-              <Form.Label>Starting Date</Form.Label>
-              <br />
-              <DatePicker
-                selected={
-                  medicationFormData.startDate instanceof Date
-                    ? medicationFormData.startDate
-                    : null
-                }
-                onChange={handleDateSelectChange}
-                dateFormat="yyyy/MM/dd"
-                className="form-control"
-                wrapperClassName="date-picker-full-width"
-              />
-            </Form.Group>
-          </div>
-          <div style={{ marginTop: "30px", float: "right" }}>
-            {isSubmited && (
-              <Button
-                variant="primary"
-                type="submit"
-                onClick={handleCheckPayerRequirements}
-              >
-                Check Payer Requirements
-              </Button>
-            )}
-            <Button
-              variant="success"
-              // type="submit"
-              style={{ marginLeft: "30px", float: "right" }}
-              onClick={handleCreateMedicationOrder}
-              disabled={isSubmited || !validateForm() ? true : false}
-            >
-              Create Medication Order
-            </Button>
-          </div>
-        </Form>
-      </Card.Body>
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={alertSeverity}>
-          {alertMessage}
-        </Alert>
-      </Snackbar>
-    </Card>
-  );
-};
-
-const PrescribeMedicineCard = ({
-  setCdsCards,
-}: {
-  setCdsCards: React.Dispatch<React.SetStateAction<CdsCard[]>>;
-}) => {
-  return (
     <div
       style={{
         color: "black",
         marginTop: "20px",
       }}
     >
-      <PrescribeForm setCdsCards={setCdsCards} />
+      <Card style={{ marginTop: "30px", padding: "20px" }}>
+        <Card.Body>
+          <Card.Title>Prescribe Medicine</Card.Title>
+          <Form onSubmit={handleSubmit}>
+            <Form.Group
+              controlId="formTreatingSickness"
+              style={{ marginTop: "20px" }}
+            >
+              <Form.Label>
+                Treating <span style={{ color: "red" }}>*</span>
+              </Form.Label>
+              <Select
+                name="treatingSickness"
+                options={TREATMENT_OPTIONS}
+                isSearchable
+                onChange={handleSelectChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group
+              controlId="formMedication"
+              style={{ marginTop: "20px", flex: "1 1 40%" }}
+            >
+              <Form.Label>
+                Medication <span style={{ color: "red" }}>*</span>
+              </Form.Label>
+              <Select
+                name="medication"
+                options={MEDICATION_OPTIONS}
+                isSearchable
+                onChange={handleSelectChange}
+                menuPosition="fixed"
+                required
+              />
+            </Form.Group>
+            <div
+              style={{
+                display: "flex",
+                gap: "20px",
+              }}
+            >
+              <Form.Group
+                controlId="formFrequency"
+                style={{ marginTop: "20px", flex: "1 1 100%" }}
+              >
+                <Form.Label>
+                  Frequency <span style={{ color: "red" }}>*</span>
+                </Form.Label>
+                <Form.Control
+                  type="number"
+                  placeholder="Enter frequency"
+                  name="frequency"
+                  onChange={handleInputChange}
+                  required
+                />
+              </Form.Group>
+              <Form.Group
+                controlId="formFrequency"
+                style={{ marginTop: "20px", flex: "1 1 100%" }}
+              >
+                <Form.Label>
+                  Frequency Unit <span style={{ color: "red" }}>*</span>
+                </Form.Label>
+                <Select
+                  name="frequencyUnit"
+                  options={FREQUENCY_UNITS}
+                  isSearchable
+                  onChange={handleSelectChange}
+                  menuPosition={"fixed"}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group
+                controlId="formPeriod"
+                style={{ marginTop: "20px", flex: "1 1 100%" }}
+              >
+                <Form.Label>
+                  Period<span style={{ color: "red" }}>*</span>
+                </Form.Label>
+                <Form.Control
+                  type="number"
+                  placeholder="Enter period"
+                  name="period"
+                  onChange={handleInputChange}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group
+                controlId="formStartDate"
+                style={{ marginTop: "20px", flex: "1 1 100%", width: "100%" }}
+              >
+                <Form.Label>Starting Date</Form.Label>
+                <br />
+                <DatePicker
+                  selected={
+                    medicationFormData.startDate
+                      ? new Date(medicationFormData.startDate)
+                      : null
+                  }
+                  onChange={handleDateSelectChange}
+                  dateFormat="yyyy/MM/dd"
+                  className="form-control"
+                  wrapperClassName="date-picker-full-width"
+                />
+              </Form.Group>
+            </div>
+            <div style={{ marginTop: "30px", float: "right" }}>
+              <Box
+                sx={{ width: "100%" }}
+                display="flex"
+                flexDirection="row"
+                alignItems="center"
+                justifyContent="space-between"
+                gap={2}
+              >
+                <Stepper
+                  activeStep={activeOperation}
+                  alternativeLabel
+                  sx={{ marginTop: 6 }}
+                >
+                  {operations.map((operation) => (
+                    <Step
+                      key={operation.name}
+                      completed={operation.isCompleted}
+                    >
+                      <StepLabel>{operation.name}</StepLabel>
+                    </Step>
+                  ))}
+                </Stepper>
+                <Button
+                  variant="success"
+                  style={{ marginLeft: "30px", float: "right" }}
+                  onClick={handleCreateMedicationOrder}
+                  disabled={isSubmited || !validateFormRequiredFields()}
+                >
+                  Create Medication Order
+                </Button>
+              </Box>
+            </div>
+          </Form>
+        </Card.Body>
+        <Snackbar
+          open={openSnackbar}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        >
+          <Alert onClose={handleCloseSnackbar} severity={alertSeverity}>
+            {alertMessage}
+          </Alert>
+        </Snackbar>
+      </Card>
     </div>
   );
 };
 
 const PayerRequirementsCard = ({ cdsCards }: { cdsCards: CdsCard[] }) => {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-        gap: "20px",
-      }}
-    >
-      {cdsCards.map((card, index) => (
-        <RequirementCard key={index} requirementsResponsCard={card} />
-      ))}
-    </div>
-  );
-};
+  const dispatch = useDispatch();
 
-const RequirementCard = ({
-  requirementsResponsCard,
-}: {
-  requirementsResponsCard: CdsCard;
-}) => {
+  const requestBody = useMemo(
+    () => ({
+      resourceType: "Parameters",
+      id: "questionnaire-package-request",
+      parameter: [
+        {
+          name: "coverage",
+          resource: {
+            resourceType: "Coverage",
+            reference: "Coverage/367",
+          },
+        },
+        {
+          name: "order",
+          resource: {
+            resourceType: "MedicationRequest",
+            reference: "MedicationRequest/111112",
+          },
+        },
+      ],
+    }),
+    []
+  );
+
+  const loadQuestionnaires = useCallback(() => {
+    const Config = window.Config;
+    localStorage.setItem(TIMESTAMP, new Date().toISOString());
+    dispatch(updateActiveStep(2));
+    dispatch(
+      updateSingleStep({
+        stepName: "Questionnaire package",
+        newStatus: StepStatus.IN_PROGRESS,
+      })
+    );
+
+    localStorage.setItem(QUESTIONNAIRE_PACKAGE_REQUEST_METHOD, HTTP_METHODS.POST);
+    localStorage.setItem(
+      QUESTIONNAIRE_PACKAGE_URL,
+      Config.demoBaseUrl + Config.questionnaire_package
+    );
+    localStorage.setItem(QUESTIONNAIRE_PACKAGE_REQUEST, JSON.stringify(requestBody));
+
+    axios
+      .post(Config.questionnaire_package, requestBody, {
+        headers: {
+          "Content-Type": "application/fhir+json",
+        },
+      })
+      .then(async (response) => {
+        dispatch(
+          appendRequestLog({
+            method: HTTP_METHODS.POST,
+            url: Config.demoBaseUrl + Config.questionnaire_package,
+            request: requestBody,
+            response: response.data,
+          })
+        );
+
+        const questionnaire = response.data;
+        localStorage.setItem(QUESTIONNAIRE_PACKAGE_RESPONSE, JSON.stringify(questionnaire));
+        dispatch(
+          updateSingleStep({
+            stepName: "Questionnaire package",
+            newStatus: StepStatus.COMPLETED,
+          })
+        );
+        await timeout(2000);
+        dispatch(updateActiveStep(3));
+        dispatch(
+          updateSingleStep({
+            stepName: "Questionnaire Response",
+            newStatus: StepStatus.IN_PROGRESS,
+          })
+        );
+        await timeout(5000);
+        dispatch(
+          updateSingleStep({
+            stepName: "Questionnaire Response",
+            newStatus: StepStatus.COMPLETED,
+          })
+        );
+      })
+      .catch((error) => {
+        console.error("Error fetching questionnaire:", error);
+      });
+  }, [dispatch, requestBody]);
+
   return (
-    <div>
-      <Card style={{ marginTop: "30px", padding: "20px" }}>
-        <Card.Body>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "10px",
-            }}
-          >
-            <Card.Title>{requirementsResponsCard.summary}</Card.Title>
-            <div
-              style={{
-                padding: "5px 10px",
-                backgroundColor: "#ffcccb",
-                color: "darkred",
-                borderRadius: "30px",
-                fontSize: "12px",
-              }}
-            >
-              Critical
-            </div>
-          </div>
-          <Card.Text>
-            <p>{requirementsResponsCard.detail}</p>
-            <hr />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "10px",
-              }}
-            >
-              <Card.Title>Suggestions</Card.Title>
-              {requirementsResponsCard.selectionBehavior && (
-                <div
-                  style={{
-                    padding: "5px 10px",
-                    backgroundColor: "#FFD580",
-                    color: "black",
-                    borderRadius: "30px",
-                    fontSize: "12px",
-                  }}
-                >
-                  {requirementsResponsCard.selectionBehavior}
-                </div>
-              )}
-            </div>
-            <ul>
-              {requirementsResponsCard.suggestions &&
-                requirementsResponsCard.suggestions.map((suggestion, index) => (
-                  <li key={index}>{suggestion.label}</li>
-                ))}
-            </ul>
-            {requirementsResponsCard.links &&
-              requirementsResponsCard.links.length > 0 && (
-                <>
-                  <hr />
-                  <Card.Title>Links</Card.Title>
-                  {requirementsResponsCard.links.map((link, index) => (
-                    <div key={index}>
-                      <li>
-                        <Card.Link
-                          href={`${link.url}`}
-                          target="_blank"
-                          style={{ color: "#4635B1" }}
-                        >
-                          {link.label}
-                        </Card.Link>
-                      </li>
-                    </div>
-                  ))}
-                </>
-              )}
-          </Card.Text>
-        </Card.Body>
-      </Card>
-    </div>
+    <CdsHookCardsSection
+      cards={cdsCards}
+      flow="medication"
+      beforeNavigate={loadQuestionnaires}
+    />
   );
 };
 
@@ -486,58 +670,12 @@ export default function DrugOrderPageV2() {
   const { isAuthenticated } = useAuth();
   const [cdsCards, setCdsCards] = useState<CdsCard[]>([]);
 
-  const selectedPatientId = useSelector(
-    (state: any) => state.patient.selectedPatientId
-  );
-  const currentPatient = PATIENT_DETAILS.find(
-    (patient) => patient.id === selectedPatientId
-  );
-
-
   return isAuthenticated ? (
     <div style={{ marginLeft: 50, marginBottom: 50 }}>
-      <div className="page-heading">Order Drugs</div>
-      <div style={{ display: "flex", gap: "20px" }}>
-        <Form.Group
-          controlId="formPatientName"
-          style={{ marginTop: "20px", flex: "1 1 100%" }}
-        >
-          <Form.Label>Patient Name</Form.Label>
-          <Form.Control
-            type="text"
-            value={`${currentPatient?.name[0].given[0]} ${currentPatient?.name[0].family}`}
-            disabled
-          />
-        </Form.Group>
-        <Form.Group
-          controlId="formPatientID"
-          style={{ marginTop: "20px", flex: "1 1 100%" }}
-        >
-          <Form.Label>Patient ID</Form.Label>
-          <Form.Control type="text" value={currentPatient?.id} disabled />
-        </Form.Group>
-      </div>
-      <div>
-        <PrescribeMedicineCard setCdsCards={setCdsCards} />
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "20px",
-        }}
-      ></div>
+      <div className="page-heading">Prescribe Medications</div>
+      <PatientInfo />
+      <PrescribeForm setCdsCards={setCdsCards} />
       <PayerRequirementsCard cdsCards={cdsCards} />
-      <style>{`
-        .card {
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
-        .card-body {
-          flex: 1;
-        }
-      `}</style>
     </div>
   ) : (
     <Navigate to="/" replace />

@@ -32,27 +32,46 @@ import {
 } from "../redux/cdsRequestSlice";
 import { updateCdsResponse, resetCdsResponse } from "../redux/cdsResponseSlice";
 import { useAuth } from "../components/AuthProvider";
-import { PATIENT_DETAILS } from "../constants/data";
-import { selectPatient } from "../redux/patientSlice";
+import PatientInfo from "../components/PatientInfo";
+import { FREQUENCY_UNITS } from "../constants/data";
+import {
+  appendRequestLog,
+  clearRequestLogs,
+  updateIsProcess,
+} from "../redux/currentStateSlice";
+import { HTTP_METHODS } from "../constants/enum";
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
 };
 
+const getQuestionText = (text: { value: string } | string | undefined): string =>
+  typeof text === "string" ? text : (text?.value ?? "");
+
 const QuestionnniarForm = ({
   questionnaireId,
+  medicationRequestId,
+  patientId,
+  coverageId,
   isQuestionnaireResponseSubmited,
   setIsQuestionnaireResponseSubmited,
+  submittedQrId,
+  setSubmittedQrId,
 }: {
   questionnaireId: string;
+  medicationRequestId: string;
+  patientId: string;
+  coverageId: string;
   isQuestionnaireResponseSubmited: boolean;
   setIsQuestionnaireResponseSubmited: React.Dispatch<
     React.SetStateAction<boolean>
   >;
+  submittedQrId: string | null;
+  setSubmittedQrId: (id: string) => void;
 }) => {
   const dispatch = useDispatch();
   const [questions, setQuestions] = useState<
-    { linkId: string; text: string; type: string }[]
+    { linkId: string; text: { value: string } | string; type: string }[]
   >([]);
   const [formData, setFormData] = useState<{
     [key: string]: string | number | boolean;
@@ -72,14 +91,14 @@ const QuestionnniarForm = ({
         name: "coverage",
         resource: {
           resourceType: "Coverage",
-          reference: "Coverage/367",
+          reference: `Coverage/${coverageId}`,
         },
       },
       {
         name: "order",
         resource: {
           resourceType: "MedicationRequest",
-          reference: "MedicationRequest/111112",
+          reference: `MedicationRequest/${medicationRequestId}`,
         },
       },
     ],
@@ -88,8 +107,16 @@ const QuestionnniarForm = ({
   useEffect(() => {
     dispatch(resetCdsRequest());
     dispatch(resetCdsResponse());
+    dispatch(updateIsProcess(true));
+    dispatch(clearRequestLogs());
     // Fetch the questionnaire data from the API
     const Config = window.Config;
+    dispatch(
+      updateRequestUrl(Config.demoBaseUrl + Config.questionnaire_package)
+    );
+    dispatch(updateRequestMethod(HTTP_METHODS.POST));
+    dispatch(updateRequest(requestBody));
+
     axios
       .post(Config.questionnaire_package, requestBody, {
         headers: {
@@ -107,15 +134,28 @@ const QuestionnniarForm = ({
         setOpenSnackbar(true);
 
         const questionnaire = response.data;
-        setQuestions(
-          questionnaire.parameter[0].resource.entry[0].resource.item || []
-        );
-
         dispatch(
-          updateRequestUrl("/fhir/r4/Questionnaire/$questionnaire-package")
+          appendRequestLog({
+            method: HTTP_METHODS.POST,
+            url: Config.demoBaseUrl + Config.questionnaire_package,
+            request: requestBody,
+            response: questionnaire,
+          })
         );
-        dispatch(updateRequestMethod("POST"));
-        dispatch(updateRequest(requestBody));
+        const questionnaireParam = questionnaire.parameter?.find(
+          (p: any) => p.name === "PackageBundle"
+        );
+        const questionnaireResource =
+          questionnaireParam?.resource?.entry?.[0]?.resource ?? {};
+        const rawItems: any[] = questionnaireResource.item ?? [];
+        const items = rawItems.filter(
+          (item): item is { linkId: string; text: { value: string } | string; type: string } =>
+            typeof item.linkId === "string" && item.type !== undefined
+        );
+        if (items.length === 0) {
+          console.warn("Questionnaire parsed successfully but contained no items.", questionnaireResource);
+        }
+        setQuestions(items);
 
         dispatch(
           updateCdsResponse({
@@ -136,7 +176,7 @@ const QuestionnniarForm = ({
           })
         );
       });
-  }, []);
+  }, [medicationRequestId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -156,25 +196,25 @@ const QuestionnniarForm = ({
       questionnaire: "Questionnaire/" + questionnaireId,
       status: "completed",
       subject: {
-        reference: "Patient/101",
+        reference: `Patient/${patientId}`,
       },
       author: {
         reference: "PractitionerRole/456",
       },
       item: questions.map((question) => ({
         linkId: question.linkId,
-        text: question.text,
+        text: getQuestionText(question.text),
         answer: [
           {
-            valueQuestionnaireResponseBoolean:
+            valueBoolean:
               typeof formData[question.linkId] === "boolean"
                 ? (formData[question.linkId] as boolean)
                 : undefined,
-            valueQuestionnaireResponseInteger:
+            valueInteger:
               typeof formData[question.linkId] === "number"
                 ? (formData[question.linkId] as number)
                 : undefined,
-            valueQuestionnaireResponseString:
+            valueString:
               typeof formData[question.linkId] === "string"
                 ? (formData[question.linkId] as string)
                 : undefined,
@@ -184,30 +224,20 @@ const QuestionnniarForm = ({
     };
   };
 
-  const submitQuestionnaireResponse = (questionnaireResponse: {
-    resourceType: string;
-    questionnaire: string;
-    status: string;
-    subject: { reference: string };
-    author: { reference: string };
-    item: {
-      linkId: string;
-      text: string;
-      answer: {
-        valueQuestionnaireResponseBoolean?: boolean;
-        valueQuestionnaireResponseNumber?: number;
-        valueQuestionnaireResponseString?: string;
-      }[];
-    }[];
-  }) => {
+  const submitQuestionnaireResponse = (questionnaireResponse: any) => {
+    const Config = window.Config;
     dispatch(resetCdsRequest());
     dispatch(resetCdsResponse());
     dispatch(updateRequest(questionnaireResponse));
-    dispatch(updateRequestUrl("/fhir/r4/QuestionnaireResponse"));
-    dispatch(updateRequestMethod("POST"));
+    dispatch(
+      updateRequestUrl(Config.demoBaseUrl + Config.questionnaire_response)
+    );
+    dispatch(updateRequestMethod(HTTP_METHODS.POST));
+    // Note: clearRequestLogs is NOT called here because we want to see both
+    // questionnaire-package and questionnaire-response if they happen in the same session.
 
     // Submit the questionnaire response to the API
-    const Config = window.Config;
+
     axios
       .post(Config.questionnaire_response, questionnaireResponse, {
         headers: {
@@ -218,6 +248,17 @@ const QuestionnniarForm = ({
         if (response.status >= 200 && response.status < 300) {
           setAlertMessage("Questionnaire response submitted successfully!");
           setAlertSeverity("success");
+          if (response.data?.id) {
+            setSubmittedQrId(response.data.id);
+          }
+          dispatch(
+            appendRequestLog({
+              method: HTTP_METHODS.POST,
+              url: Config.demoBaseUrl + Config.questionnaire_response,
+              request: questionnaireResponse,
+              response: response.data,
+            })
+          );
         } else {
           setAlertMessage("Failed to submit questionnaire response!");
           setAlertSeverity("error");
@@ -254,7 +295,7 @@ const QuestionnniarForm = ({
 
   const renderFormField = (question: {
     linkId: string;
-    text: string;
+    text: { value: string } | string;
     type: string;
   }) => {
     switch (question.type) {
@@ -312,7 +353,7 @@ const QuestionnniarForm = ({
               key={index}
             >
               <Form.Label>
-                {question.text} <span style={{ color: "red" }}>*</span>
+                {getQuestionText(question.text)} <span style={{ color: "red" }}>*</span>
               </Form.Label>
               {renderFormField(question)}
             </Form.Group>
@@ -331,9 +372,15 @@ const QuestionnniarForm = ({
           <Button
             variant="success"
             style={{ marginTop: "30px", marginRight: "20px", float: "right" }}
-            onClick={() =>
-              window.open("/dashboard/drug-order-v2/claim-submit", "_blank")
-            }
+            onClick={() => {
+              const url = [
+                "/dashboard/drug-order-v2/claim-submit",
+                `?patientId=${patientId}`,
+                `&medicationRequestId=${medicationRequestId}`,
+                `&qrId=${submittedQrId || ""}`
+              ].join("");
+              window.open(url, "_blank");
+            }}
             disabled={!isQuestionnaireResponseSubmited}
           >
             Visit Claim Submission
@@ -360,18 +407,22 @@ const PrescribedForm = () => {
       medicationFormData: {
         treatingSickness: string;
         medication: string;
-        quantity: number;
         frequency: string;
-        startDate: Date;
-        duration: string;
+        frequencyUnit: string;
+        period: number;
+        startDate: string | null;
       };
     }) => state.medicationFormData
   );
   const treatingSickness = medicationFormData.treatingSickness;
   const medication = medicationFormData.medication;
-  const quantity = medicationFormData.quantity;
   const frequency = medicationFormData.frequency;
-  const duration = medicationFormData.duration;
+
+  const frequencyUnit =
+    FREQUENCY_UNITS.find(
+      (unit) => unit.value === medicationFormData.frequencyUnit
+    )?.label || medicationFormData.frequencyUnit;
+  const period = medicationFormData.period;
 
   return (
     <Card style={{ marginTop: "30px", padding: "20px" }}>
@@ -382,7 +433,7 @@ const PrescribedForm = () => {
             controlId="formTreatingSickness"
             style={{ marginTop: "20px" }}
           >
-            <Form.Label>Treating Sickness</Form.Label>
+            <Form.Label>Treating</Form.Label>
             <Form.Control type="text" value={treatingSickness || ""} disabled />
           </Form.Group>
 
@@ -398,14 +449,6 @@ const PrescribedForm = () => {
             }}
           >
             <Form.Group
-              controlId="formQuantity"
-              style={{ marginTop: "20px", flex: "1 1 100%" }}
-            >
-              <Form.Label>Quantity</Form.Label>
-              <Form.Control type="text" value={quantity || ""} disabled />
-            </Form.Group>
-
-            <Form.Group
               controlId="formFrequency"
               style={{ marginTop: "20px", flex: "1 1 100%" }}
             >
@@ -417,10 +460,17 @@ const PrescribedForm = () => {
               controlId="formDuration"
               style={{ marginTop: "20px", flex: "1 1 100%" }}
             >
-              <Form.Label>Duration (days)</Form.Label>
-              <Form.Control type="text" value={duration || ""} disabled />
+              <Form.Label>Frequency Unit</Form.Label>
+              <Form.Control type="text" value={frequencyUnit || ""} disabled />
             </Form.Group>
 
+            <Form.Group
+              controlId="formPeriod"
+              style={{ marginTop: "20px", flex: "1 1 100%" }}
+            >
+              <Form.Label>Period</Form.Label>
+              <Form.Control type="text" value={period || ""} disabled />
+            </Form.Group>
             <Form.Group
               controlId="formStartDate"
               style={{ marginTop: "20px", flex: "1 1 100%", width: "100%" }}
@@ -428,7 +478,7 @@ const PrescribedForm = () => {
               <Form.Label>Starting Date</Form.Label>
               <br />
               <DatePicker
-                selected={medicationFormData.startDate}
+                selected={medicationFormData.startDate ? new Date(medicationFormData.startDate) : null}
                 dateFormat="yyyy/MM/dd"
                 className="form-control"
                 wrapperClassName="date-picker-full-width"
@@ -442,69 +492,35 @@ const PrescribedForm = () => {
   );
 };
 
-const DetailsDiv = ({ questionnaireId }: { questionnaireId: string }) => {
-  const dispatch = useDispatch();
-  const savedPatientId = localStorage.getItem("selectedPatientId");
-  if (savedPatientId) {
-    dispatch(selectPatient(savedPatientId));
-  }
-  const selectedPatientId = useSelector(
-    (state: any) => state.patient.selectedPatientId
-  );
-  const currentPatient = PATIENT_DETAILS.find(
-    (patient) => patient.id === selectedPatientId
-  );
-
-  return (
-    <div style={{ display: "flex", gap: "20px" }}>
-      <Form.Group
-        controlId="formPatientName"
-        style={{ marginTop: "20px", flex: "1 1 100%" }}
-      >
-        <Form.Label>Patient Name</Form.Label>
-        <Form.Control
-          type="text"
-          value={`${currentPatient?.name[0].given[0]} ${currentPatient?.name[0].family}`}
-          disabled
-        />
-      </Form.Group>
-      <Form.Group
-        controlId="formPatientID"
-        style={{ marginTop: "20px", flex: "1 1 100%" }}
-      >
-        <Form.Label>Patient ID</Form.Label>
-        <Form.Control type="text" value={currentPatient?.id} disabled />
-      </Form.Group>
-      <Form.Group
-        controlId="formPatientName"
-        style={{ marginTop: "20px", flex: "1 1 100%" }}
-      >
-        <Form.Label>Questionnaire ID</Form.Label>
-        <Form.Control type="text" value={questionnaireId} disabled />
-      </Form.Group>
-    </div>
-  );
-};
-
 export default function DrugPiorAuthPage() {
   const { isAuthenticated } = useAuth();
   const query = useQuery();
   const questionnaireId = query.get("questionnaireId");
+  const medicationRequestId = query.get("medicationRequestId") || "111112";
+  const patientId = query.get("patientId") || "101";
+  const coverageId = query.get("coverageId") || "367";
+
   console.log("questionnaireId", questionnaireId);
   const [isQuestionnaireResponseSubmited, setIsQuestionnaireResponseSubmited] =
     useState(false);
+  const [submittedQrId, setSubmittedQrId] = useState<string | null>(null);
 
   return isAuthenticated ? (
     <div style={{ marginLeft: 50, marginBottom: 50 }}>
       <div className="page-heading">
         Send a Prior-Authorizing Request for Drugs
       </div>
-      <DetailsDiv questionnaireId={questionnaireId || ""} />
+      <PatientInfo />
       <PrescribedForm />
       <QuestionnniarForm
         questionnaireId={questionnaireId || ""}
+        medicationRequestId={medicationRequestId}
+        patientId={patientId}
+        coverageId={coverageId}
         isQuestionnaireResponseSubmited={isQuestionnaireResponseSubmited}
         setIsQuestionnaireResponseSubmited={setIsQuestionnaireResponseSubmited}
+        submittedQrId={submittedQrId}
+        setSubmittedQrId={setSubmittedQrId}
       />
       <style>{`
         .card {

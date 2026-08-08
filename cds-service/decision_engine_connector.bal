@@ -1,4 +1,23 @@
+// Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com).
+
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+import ballerina/http;
 import ballerinax/health.fhir.cds;
+import ballerinax/health.fhir.r4;
+import ballerinax/health.fhir.r4.international401;
 
 # ====================================== Please do your implementations to the below methods ===========================
 #
@@ -13,69 +32,183 @@ import ballerinax/health.fhir.cds;
 #
 # ======================================================================================================================
 
+configurable string rule_engine_url = ?;
+isolated http:Client httpClient = check new (rule_engine_url);
+
 # Handle decision service connectivity.
 #
 # + cdsRequest - CdsRequest to sent to the backend.
 # + hookId - ID of the hook being invoked.
 # + return - return CdsResponse or CdsError
-isolated function connectDecisionSystemForPrescirbeMedication(cds:CdsRequest cdsRequest, string hookId) returns cds:CdsResponse|cds:CdsError {
-    return {
-        cards: [
-            {
-                "summary": "Prior Authorization Required",
-                "indicator": "warning",
-                "detail": "This medication (Aimovig 70 mg) requires prior authorization from XYZ Health Insurance. Please complete the required documentation.",
-                "source": {
-                    "label": "UnitedCare Health Insurance ePA Service",
-                    "url": "https://xyzhealth.com/prior-auth"
-                },
-                "suggestions": [
-                    {
-                        "label": "Submit e-Prior Authorization",
-                        "uuid": "submit-epa",
-                        "actions": [
+isolated function connectDecisionSystemForCrdMriSpineOrderSign(cds:CdsRequest cdsRequest, string hookId) returns cds:CdsResponse|cds:CdsError {
+
+    // Extract patientId and serviceRequestId from context
+    cds:Context context = cdsRequest.clone().context;
+
+    string patientId = "";
+    if context["patientId"] is string {
+        patientId = <string>context["patientId"];
+    }
+
+    if patientId == "" {
+        return cds:createCdsError("patientId missing from CDS Hook context", 400);
+    }
+
+    // Try to find a ServiceRequest id from draftOrders
+    string serviceRequestId = "";
+    r4:Bundle? draftOrders = context?.draftOrders;
+    if draftOrders is r4:Bundle {
+        r4:BundleEntry[]? entriesArray = draftOrders.entry;
+        if entriesArray is r4:BundleEntry[] {
+            foreach var item in entriesArray {
+                anydata resourceData = item?.'resource;
+                if resourceData is map<json> {
+                    if resourceData["resourceType"] == "ServiceRequest" {
+                        if resourceData["id"] is string {
+                            serviceRequestId = <string>resourceData["id"];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Call rule engine inside lock
+    lock {
+        r4:Bundle bundle = {'type: "collection"};
+        r4:BundleEntry[] entries = [];
+
+        // Add prefetch resources
+        map<r4:DomainResource>? prefetch = cdsRequest.clone().prefetch;
+        if prefetch is map<r4:DomainResource> {
+            foreach var item in prefetch.keys() {
+                r4:BundleEntry entry = {
+                    'resource: prefetch.get(item)
+                };
+                entries.push(entry);
+            }
+        }
+
+        // Add draft orders
+        cds:Context ctx = cdsRequest.clone().context;
+        r4:Bundle? draftOrdersInLock = ctx?.draftOrders;
+        if draftOrdersInLock is r4:Bundle {
+            r4:BundleEntry[]? entriesArray = draftOrdersInLock.entry;
+            if entriesArray is r4:BundleEntry[] {
+                foreach var item in entriesArray {
+                    entries.push(item);
+                }
+            }
+        }
+
+        bundle.entry = entries;
+
+        http:Response|http:ClientError response = httpClient->post(string `/${hookId}`, bundle.clone().toJson());
+        if response is error {
+            return cds:createCdsError(response.message(), 500, cause = response);
+        }
+
+        json|http:ClientError jsonPayload = response.getJsonPayload();
+        if jsonPayload is error {
+            return cds:createCdsError(jsonPayload.message(), 500, cause = jsonPayload);
+        }
+
+        PriorAuthDecision|error priorAuthDecision = jsonPayload.cloneWithType(PriorAuthDecision);
+        if priorAuthDecision is error {
+            return cds:createCdsError(priorAuthDecision.message(), 500, cause = priorAuthDecision);
+        }
+
+        cds:CdsResponse res = {cards: []};
+
+        if priorAuthDecision.priorAuthRequired {
+            cds:Card card = {
+                summary: priorAuthDecision.summary,
+                detail: priorAuthDecision.reasons.length() > 0 ? priorAuthDecision.reasons[0] : "Prior Authorization Required",
+                indicator: "info",
+                'source: {label: "WSO2 Healthcare Rule Engine"}
+            };
+
+            // Extract questionnaire URL from links array (label == "Questionnaire")
+            string? questionnaireUrl = ();
+            PriorAuthLink[]? links = priorAuthDecision.links;
+            if links is PriorAuthLink[] {
+                foreach PriorAuthLink lnk in links {
+                    if lnk.label == "Questionnaire" {
+                        questionnaireUrl = lnk.url;
+                        break;
+                    }
+                }
+            }
+
+            // Build Task-based suggestion for DTR if questionnaire URL is present
+            if questionnaireUrl is string {
+                international401:Task task = {
+                    meta: {
+                        profile: ["http://hl7.org/fhir/us/davinci-crd/StructureDefinition/profile-taskquestionnaire"]
+                    },
+                    status: "requested",
+                    intent: "order",
+                    code: {
+                        coding: [
                             {
-                                "type": "create",
-                                "description": "Submit an electronic prior authorization request for Aimovig 70 mg.",
-                                "resource": {
-                                    "resourceType": "Task",
-                                    "status": "requested",
-                                    "intent": "order",
-                                    "code": {
-                                        "coding": [
-                                            {
-                                                "system": "http://terminology.hl7.org/CodeSystem/task-code",
-                                                "code": "prior-authorization",
-                                                "display": "Submit Prior Authorization"
-                                            }
-                                        ]
-                                    },
-                                    "for": {
-                                        "reference": "Patient/101"
-                                    },
-                                    "owner": {
-                                        "reference": "Organization/50"
-                                    }
-                                }
+                                system: "http://hl7.org/fhir/uv/sdc/CodeSystem/temp",
+                                code: "data-request-questionnaire"
                             }
                         ]
-                    }
-                ],
-                "links": [
-                    {
-                        "label": "Check PA Status",
-                        "url": "https://xyzhealth.com/check-pa-status",
-                        "type": "absolute"
                     },
-                    {
-                        "label": "Launch SMART App for DTR",
-                        "url": string `${EHR_DTR_APP_LINK}`,
-                        "type": "smart"
-                    }
-                ]
+                    description: "Complete Prior Auth form",
+                    for: {
+                        reference: string `Patient/${patientId}`
+                    },
+                    requester: {
+                        reference: string `Organization/${payer_organization_id}`
+                    },
+                    input: [
+                        {
+                            'type: {
+                                coding: [
+                                    {
+                                        system: "http://hl7.org/fhir/uv/sdc/CodeSystem/temp",
+                                        code: "questionnaire"
+                                    }
+                                ],
+                                text: "questionnaire"
+                            },
+                            valueCanonical: questionnaireUrl
+                        }
+                    ]
+                };
+
+                if serviceRequestId != "" {
+                    task.basedOn = [
+                        {
+                            reference: string `ServiceRequest/${serviceRequestId}`
+                        }
+                    ];
+                }
+
+                cds:Suggestion suggestion = {
+                    label: "Complete Prior Auth Questionnaire",
+                    uuid: "submit-epa-task",
+                    actions: [
+                        {
+                            'type: "create",
+                            description: "Add 'Complete Prior Auth form' to the task list",
+                            'resource: task
+                        }
+                    ]
+                };
+
+                cds:Suggestion[] suggestions = card.suggestions ?: [];
+                suggestions.push(suggestion);
+                card.suggestions = suggestions;
             }
-        ]
-    };
+
+            res.cards.push(card);
+        }
+
+        return res.clone();
+    }
 }
 
 # Handle feedback service connectivity.
@@ -83,7 +216,178 @@ isolated function connectDecisionSystemForPrescirbeMedication(cds:CdsRequest cds
 # + feedback - Feedback record to be processed.
 # + hookId - ID of the hook being invoked.
 # + return - return CdsError, if any.
-isolated function connectFeedbackSystemForPrescirbeMedication(cds:Feedbacks feedback, string hookId) returns cds:CdsError? {
+isolated function connectFeedbackSystemForCrdMriSpineOrderSign(cds:Feedbacks feedback, string hookId) returns cds:CdsError? {
+    return cds:createCdsError(string `Rule repository backend not implemented/ connected yet for ${hookId}`, 501);
+}
+
+configurable string payer_organization_id = ?;
+
+# Handle decision service connectivity.
+#
+# + cdsRequest - CdsRequest to sent to the backend.
+# + hookId - ID of the hook being invoked.
+# + return - return CdsResponse or CdsError
+isolated function connectDecisionSystemForPrescribeMedication(cds:CdsRequest cdsRequest, string hookId) returns cds:CdsResponse|cds:CdsError {
+
+    // Extract medicationRequestId and patientId
+    cds:Context context = cdsRequest.clone().context;
+
+    string patientId = "";
+    if context["patientId"] is string {
+        patientId = <string>context["patientId"];
+    }
+
+    if patientId == "" {
+        return cds:createCdsError("patientId missing from CDS Hook context", 400);
+    }
+
+    string medicationRequestId = "";
+
+    // Query FHIR server for Coverage
+
+    // Logic from previous commit for medicationRequestId extraction
+    r4:Bundle? draftOrders = context?.draftOrders;
+    if draftOrders is r4:Bundle {
+        r4:BundleEntry[]? entriesArray = draftOrders.entry;
+        if entriesArray is r4:BundleEntry[] {
+            foreach var item in entriesArray {
+                anydata resourceData = item?.'resource;
+                if resourceData is map<json> {
+                    // Check resourceType
+                    if resourceData["resourceType"] == "MedicationRequest" {
+                        if resourceData["id"] is string {
+                            medicationRequestId = <string>resourceData["id"];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Call Rule Engine
+    lock {
+        r4:Bundle bundle = {'type: "collection"};
+        r4:BundleEntry[] entries = [];
+
+        // Re-extract draftOrders from cloned request to ensure isolation safety inside lock
+        cds:Context ctx = cdsRequest.clone().context;
+        r4:Bundle? draftOrdersInLock = ctx?.draftOrders;
+
+        // Add draft orders to bundle for rule engine
+        if draftOrdersInLock is r4:Bundle {
+            r4:BundleEntry[]? entriesArray = draftOrdersInLock.entry;
+            if entriesArray is r4:BundleEntry[] {
+                foreach var item in entriesArray {
+                    entries.push(item);
+                }
+            }
+        }
+
+        bundle.entry = entries;
+
+        http:Response|http:ClientError response = httpClient->post(string `/${hookId}`, bundle.clone().toJson());
+        if response is error {
+            return cds:createCdsError(response.message(), 500, cause = response);
+        }
+
+        json|http:ClientError jsonPayload = response.getJsonPayload();
+        if jsonPayload is error {
+            return cds:createCdsError(jsonPayload.message(), 500, cause = jsonPayload);
+        }
+
+        PriorAuthDecision|error priorAuthDecision = jsonPayload.cloneWithType(PriorAuthDecision);
+        if priorAuthDecision is error {
+            return cds:createCdsError(priorAuthDecision.message(), 500, cause = priorAuthDecision);
+        }
+
+        cds:CdsResponse res = {cards: []};
+
+        if priorAuthDecision.priorAuthRequired {
+            cds:Card card = {
+                summary: priorAuthDecision.summary,
+                detail: priorAuthDecision.reasons.length() > 0 ? priorAuthDecision.reasons[0] : "Prior Authorization Required",
+                indicator: "warning",
+                'source: {label: "WSO2 Healthcare Rule Engine"}
+            };
+
+            // Add the Task resource for DTR
+            string? questionnaireUrl = priorAuthDecision.questionnaireUrl;
+            if questionnaireUrl is string {
+                international401:Task task = {
+                    meta: {
+                        profile: ["http://hl7.org/fhir/us/davinci-crd/StructureDefinition/profile-taskquestionnaire"]
+                    },
+                    status: "requested",
+                    intent: "order",
+                    code: {
+                        coding: [
+                            {
+                                system: "http://hl7.org/fhir/uv/sdc/CodeSystem/temp",
+                                code: "data-request-questionnaire"
+                            }
+                        ]
+                    },
+                    description: "Complete Prior Auth form",
+                    for: {
+                        reference: string `Patient/${patientId}`
+                    },
+                    requester: {
+                        reference: string `Organization/${payer_organization_id}`
+                    },
+                    input: [
+                        {
+                            'type: {
+                                coding: [
+                                    {
+                                        system: "http://hl7.org/fhir/uv/sdc/CodeSystem/temp",
+                                        code: "questionnaire"
+                                    }
+                                ],
+                                text: "questionnaire"
+                            },
+                            valueCanonical: questionnaireUrl
+                        }
+                    ]
+                };
+
+                if medicationRequestId != "" {
+                    task.basedOn = [
+                        {
+                            reference: string `MedicationRequest/${medicationRequestId}`
+                        }
+                    ];
+                }
+
+                cds:Suggestion suggestion = {
+                    label: "Complete Prior Auth Questionnaire",
+                    uuid: "submit-epa-task",
+                    actions: [
+                        {
+                            'type: "create",
+                            description: "Add 'Complete Prior Auth form' to the task list",
+                            'resource: task
+                        }
+                    ]
+                };
+
+                cds:Suggestion[] suggestions = card.suggestions ?: [];
+                suggestions.push(suggestion);
+                card.suggestions = suggestions;
+            }
+
+            res.cards.push(card);
+        }
+
+        return res.clone();
+    }
+}
+
+# Handle feedback service connectivity.
+#
+# + feedback - Feedback record to be processed.
+# + hookId - ID of the hook being invoked.
+# + return - return CdsError, if any.
+isolated function connectFeedbackSystemForPrescribeMedication(cds:Feedbacks feedback, string hookId) returns cds:CdsError? {
     return cds:createCdsError(string `Rule repository backend not implemented/ connected yet for ${hookId}`, 501);
 }
 
@@ -93,7 +397,7 @@ isolated function connectFeedbackSystemForPrescirbeMedication(cds:Feedbacks feed
 # + hookId - ID of the hook being invoked.
 # + return - return CdsResponse or CdsError
 isolated function connectDecisionSystemForRadiology(cds:CdsRequest cdsRequest, string hookId) returns cds:CdsResponse|cds:CdsError {
-    return cds:createCdsError(string `Rule repository backend not implemented/ connected yet for ${hookId}`, 501);
+    return connectDecisionSystemForCrdMriSpineOrderSign(cdsRequest, hookId);
 }
 
 # Handle feedback service connectivity.
@@ -111,7 +415,7 @@ isolated function connectFeedbackSystemForRadiology(cds:Feedbacks feedback, stri
 # + hookId - ID of the hook being invoked.
 # + return - return CdsResponse or CdsError
 isolated function connectDecisionSystemForRadiologyOrder(cds:CdsRequest cdsRequest, string hookId) returns cds:CdsResponse|cds:CdsError {
-    return cds:createCdsError(string `Rule repository backend not implemented/ connected yet for ${hookId}`, 501);
+    return connectDecisionSystemForCrdMriSpineOrderSign(cdsRequest, hookId);
 }
 
 # Handle feedback service connectivity.
@@ -122,3 +426,28 @@ isolated function connectDecisionSystemForRadiologyOrder(cds:CdsRequest cdsReque
 isolated function connectFeedbackSystemForRadiologyOrder(cds:Feedbacks feedback, string hookId) returns cds:CdsError? {
     return cds:createCdsError(string `Rule repository backend not implemented/ connected yet for ${hookId}`, 501);
 }
+
+public type PriorAuthDecision record {|
+    boolean priorAuthRequired;
+    // High-level summary of why we decided this way.
+    string summary;
+    // Detailed reasons / rule hits.
+    string[] reasons;
+    // Medical necessity status derived from clinical data in the bundle.
+    MedicalNecessityStatus medicalNecessity;
+    // Missing documentation / data points to complete the check.
+    string[] missingDocumentation;
+
+    // Links to payer resources (coverage policy, docs checklist, DTR launch, PA portal, etc.)
+    PriorAuthLink[] links?;
+    string questionnaireUrl?;
+|};
+
+public type PriorAuthLink record {|
+    string label; // e.g., "Coverage policy", "Docs checklist", "Launch DTR"
+    string url; // absolute URL
+    string 'type?; // optional: "absolute" | "smart" | "web" | "api" (your convention)
+    string description?; // optional short help text
+|};
+
+public type MedicalNecessityStatus "MET"|"NOT_MET"|"INSUFFICIENT_DATA";

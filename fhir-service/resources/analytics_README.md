@@ -1,0 +1,102 @@
+# CMS FHIR API Analytics
+
+CMS requires Patient Access API Metrics to be published to CMS annually. This requirement can be achieved using the `AnalyticsResponseInterceptor`, which comes inbuilt in the `health.fhirr4` service.
+
+# Prior Authorisation Analytics
+
+CMS-0057-F requires Prior Authorisation Metrics to be published on the public websites of the payers annually.
+
+- For standard prior authorisation requests, aggregated for all items and services:
+-- Percentage approved in the calendar year
+-- Percentage denied in the calendar year
+-- The average (mean) response times that elapsed between the submission of a request and a determination by the payer
+
+- For expedited prior authorisation requests, aggregated for all items and services:
+-- Percentage approved in the calendar year
+-- Percentage denied in the calendar year
+-- The average (mean) response times that elapsed between the submission of a request and a determination by the payer
+
+In addition to the above analytics, following analytics are supported,
+
+- SLA violation analytics for standard and expedited requests
+- Partial approval analytics for claims
+
+## Overview
+
+This implementation contains a response interceptor that intercepts CMS FHIR requests and persists data to a configurable log file. As a sidecar, [Fluent Bit](https://fluentbit.io/) will listen to this log file where the analytics data is persisted. Fluent Bit then publishes the analytics data to different analytics solutions like Moesif and Microsoft Fabric.
+
+The solution currently supports publishing CMS API data to two analytics solutions. Prior Authorisation Analytics are only published to Moesif currently.
+
+1.  [Moesif](https://www.moesif.com/)
+2.  [Microsoft Fabric](https://app.fabric.microsoft.com/)
+
+This analytics solution can be extended to other analytics platforms by writing a platform-specific Fluent Bit configuration.
+
+## x-jwt-assertion header
+
+This solution expects the API calls to have a header named ```x-jwt-assertion``` with the required data that the user needs to be sent to analytics. If this header is not present, the data will not be written to the file and will not be published to the configured analytics platform.
+
+-   **Important**: to determine the FHIR user, you should include a claim named ```fhirUser``` in the ```x-jwt-assertion header```. Otherwise, the user details are not reflected in the generated dashboards. You do not need to add the key ```fhirUser``` into the ```jwtAttributes``` configuration below in this case. The implementation detects the user when it is available in the header.
+    
+## Configurations
+The following configuration model is used in this analytics solution. The default configuration is provided below. By default it is disabled.
+
+ ```toml
+[ballerinax.health.fhirr4.analytics]
+enabled = false
+fhirServerContext = "/fhir/r4/"
+jwtAttributes = ["client_id", "iss"]
+shouldPublishPayloads = false
+filePath = "logs"
+fileName = "fhir-analytics"
+allowedApiContexts = []
+excludedApiContexts = []
+```
+
+* **Configuration Descriptions**:
+> - enabled: 
+	 - enable or disable analytics. Disable by default.
+> - fhirServerContext:
+	- this is the context path of the FHIR server (mandatory). **Must match the server path and must end with the trailing slash**.
+> - jwtAttributes: 
+	- a comma-separated list of strings of the attributes that are contained in the x-jwt-assertion header that should be considered for data writing. If no values are required, the list should remain empty. The values should exactly match the claims present in the x-jwt-assertion header. Only the specified values are considered for analytics. In the above example, the ```client_id``` and ```iss``` is expected to be present in the ```x-jwt-assertion``` header.
+> - shouldPublishPayloads: 
+	- determines whether the request payloads (request/response) should be written to the log file. Disabled by default.
+> - filePath:
+	- path where the log file should be created. This is relative to the server location. A nested path can also be configured if required (eg: foo/bar). If the directories are not created during the server startup, they will be automatically created. If ```filePath``` is not configured, a default directory named ```logs``` will be created.
+> - fileName:
+	- name of the log file that is created. If the file doesn’t exist in the configured path, the file will be automatically created during the server startup. If ```fileName``` is not configured, a default log file named ```fhir-analytics``` will be created inside the default ```filePath```.
+> - allowedApiContexts:
+	- a list of comma-separated regexes. If it requires allowing only a set of defined APIs through the interceptor, they should be configured in this list as comma-separated strings. These can be valid regexes.
+> - excludedApiContexts: 
+	- a list of comma-separated regexes. If it requires to not to allow only a set of defined APIs through the interceptor, they should be configured in this list as comma-separated strings. These can be valid regexes. If both lists are configured, the priority will be given to the excluded list, and the allowed list will be ignored. If prior authorisation analytics are required, do not exclude the prior authorisation APIs.
+
+## Enrich Analytics Payload Endpoint
+
+This endpoint is provided for the user to optionally add any additional data to the analytics payload from a separate backend. The configuration below is used to define the URL of this backend server and the security credentials for basic authentication. Note that this payload enrichment only applies when the ```shouldPublishPayloads``` configuration is set to true.
+
+```toml
+[ballerinax.health.fhirr4.analytics.enrichPayload]
+enabled = false
+url = "http://<HOST>:<PORT>/enrich-analytics-payload"
+username = ""
+password = ""
+```
+
+* **Configuration Descriptions**:
+> - enabled:
+	- payload data enrichment will only work if this is set to true and the ```shouldPublishPayloads``` configuration is enabled.
+> - url: 
+	- the URL of the external server
+> - username:
+	- username for the basic authentication of the server
+> - password:
+	- password for the basic authentication of the server
+    
+Check ```enrich_analytics_payload_api.yaml``` in ```module-ballerinax-health.fhir.r4/fhirr4/ballerina/src/main/resources/fhirservice/resources``` for a sample open-api swagger.
+
+## Publishing CMS Analytics and Prior Authorisation Data to Moesif
+Refer to [Publish CMS Analytics to Moesif](../resources/analytics/moesif/moesif_README.md)
+
+## Publishing CMS Analytics Data to Microsoft Fabric
+Refer to [Publish CMS Analytics to Microsoft Fabric](../resources/analytics/fabric/fabric_README.md)

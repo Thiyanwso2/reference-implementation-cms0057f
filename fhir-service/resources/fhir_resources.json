@@ -1,0 +1,552 @@
+[
+  {
+    "type": "Patient",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient",
+      "http://hl7.org/fhir/StructureDefinition/Patient"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamString": ["family", "given", "name"],
+    "searchParamToken": ["gender", "identifier"],
+    "searchParamDate": ["birthdate"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Group",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/StructureDefinition/Group",
+      "http://hl7.org/fhir/us/davinci-pdex/StructureDefinition/member-provider-treatment-relationship-group",
+      "http://hl7.org/fhir/us/davinci-pdex/StructureDefinition/member-opt-out-group",
+      "http://hl7.org/fhir/us/davinci-pdex/StructureDefinition/pdex-member-opt-out",
+      "http://hl7.org/fhir/us/davinci-pdex/StructureDefinition/pdex-member-no-match-group",
+      "http://hl7.org/fhir/us/davinci-pdex/StructureDefinition/provider-access-matched-member-group"
+    ],
+    "interaction": ["create", "read", "search-type"],
+    "searchParamReference": ["managing-entity"],
+    "searchParamToken": ["characteristic", "code"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Claim",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-claim"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamToken": ["use"],
+    "searchParamDate": ["created"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "ClaimResponse",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-claimresponse"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient", "request"],
+    "searchParamToken": ["use"],
+    "searchParamDate": ["created"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Coverage",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": ["http://hl7.org/fhir/StructureDefinition/Coverage"],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient", "beneficiary"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "ExplanationOfBenefit",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/carin-bb/StructureDefinition/C4BB-ExplanationOfBenefit-Inpatient-Institutional",
+      "http://hl7.org/fhir/us/carin-bb/StructureDefinition/C4BB-ExplanationOfBenefit-Oral",
+      "http://hl7.org/fhir/us/carin-bb/StructureDefinition/C4BB-ExplanationOfBenefit-Outpatient-Institutional",
+      "http://hl7.org/fhir/us/carin-bb/StructureDefinition/C4BB-ExplanationOfBenefit-Pharmacy",
+      "http://hl7.org/fhir/us/carin-bb/StructureDefinition/C4BB-ExplanationOfBenefit-Professional-NonClinician"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamToken": ["identifier"],
+    "searchParamDate": ["created"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Consent",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": ["http://hl7.org/fhir/StructureDefinition/Consent"],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient", "actor", "organization"],
+    "searchParamToken": ["status", "scope", "category", "action"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Questionnaire",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/davinci-dtr/StructureDefinition/dtr-questionnaire"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamString": ["title", "url", "version"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "QuestionnaireResponse",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/davinci-dtr/StructureDefinition/dtr-questionnaireresponse"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["subject", "author"],
+    "searchParamDate": ["authored"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Organization",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamString": ["name"],
+    "searchParamToken": ["type"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Practitioner",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamString": ["name"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "PractitionerRole",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitionerrole"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["practitioner", "organization"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "AllergyIntolerance",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-allergyintolerance"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "CarePlan",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-careplan"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "CareTeam",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-careteam"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Condition",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Device",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-implantable-device"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "DiagnosticReport",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-note",
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "DocumentReference",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-documentreference"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Encounter",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Goal",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-goal"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Immunization",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-immunization"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "MedicationDispense",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationdispense"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "MedicationRequest",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Observation",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-vital-signs",
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Procedure",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Provenance",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": ["http://hl7.org/fhir/StructureDefinition/Provenance"],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["target"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "RelatedPerson",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-relatedperson"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "ServiceRequest",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-servicerequest"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["patient"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "CommunicationRequest",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-communicationrequest"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamReference": ["subject"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Subscription",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-subscription"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "MedicationKnowledge",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/davinci-drug-formulary/StructureDefinition/usdf-FormularyDrug"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamString": ["DrugTier", "DrugPlan", "DrugName"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "InsurancePlan",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": [
+      "http://hl7.org/fhir/us/davinci-drug-formulary/StructureDefinition/usdf-InsurancePlan"
+    ],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "Library",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": ["http://hl7.org/fhir/StructureDefinition/Library"],
+    "interaction": ["create", "read", "search-type", "update"],
+    "searchParamString": ["name", "title", "url"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "ValueSet",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": ["http://hl7.org/fhir/StructureDefinition/ValueSet"],
+    "interaction": ["read", "search-type"],
+    "searchParamString": ["name", "url"],
+    "searchParamNumber": ["_id"]
+  },
+  {
+    "type": "CodeSystem",
+    "versioning": "versioned",
+    "conditionalCreate": false,
+    "conditionalRead": "not-supported",
+    "conditionalUpdate": false,
+    "conditionalDelete": "not-supported",
+    "referencePolicy": ["resolves"],
+    "supportedProfile": ["http://hl7.org/fhir/StructureDefinition/CodeSystem"],
+    "interaction": ["read", "search-type"],
+    "searchParamString": ["name", "url"],
+    "searchParamNumber": ["_id"]
+  }
+]

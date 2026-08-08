@@ -26,17 +26,35 @@ declare global {
   interface Window {
     Config: {
       baseUrl: string;
+      demoBaseUrl: string;
+      demoHospitalUrl: string;
       medication_request: string;
+      service_request: string;
       prescribe_medication: string;
+      crd_mri_spine: string;
       questionnaire_package: string;
       questionnaire_response: string;
+      claim: string;
       claim_submit: string;
       radiology_order: string;
       book_imaging_center: string;
       practitioner: string;
+      practitioner_new: string;
       slot: string;
       location: string;
       appointment: string;
+      patient: string;
+      coverage: string;
+      bulkExportFetch: string;
+      bulkExportKickoffUrl: string;
+      bulkExportStatusUrl: string;
+      dtrAppUrl: string;
+      fhirServerUrl: string;
+      webhookServerUrl: string;
+      organization: string;
+      group: string;
+      npi: string;
+      payers: { id: string; name: string }[];
     };
   }
 }

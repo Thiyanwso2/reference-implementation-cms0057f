@@ -1,0 +1,17 @@
+## Following configurations are used for analytics.
+[ballerinax.health.fhirr4.analytics]
+enabled = false
+fhirServerContext = "/fhir/r4/" # must have the trailing slash
+jwtAttributes = ["client_id", "iss"]
+shouldPublishPayloads = false
+filePath = "logs" # Default value is "logs". The path is relative to the server path.
+fileName = "fhir-analytics" # must not contain the file extension
+allowedApiContexts = []
+excludedApiContexts = []
+
+## Following configurations are used to enrich the analytics payload by calling an external service.
+[ballerinax.health.fhirr4.analytics.enrichPayload]
+enabled = false
+url = "http://<HOST>:<PORT>/enrich-analytics-payload" # The URL of the external service to call for enriching the analytics payload.
+username = ""
+password = ""

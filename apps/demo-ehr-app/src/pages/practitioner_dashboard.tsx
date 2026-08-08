@@ -14,27 +14,38 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { DARK_RED_COLOR } from "../constants/color";
-import { SERVICE_CARD_DETAILS, PATIENT_DETAILS } from "../constants/data";
-import Button from "@mui/material/Button";
+import { SERVICE_CARD_DETAILS } from "../constants/data";
 import { ServiceCardListProps } from "../components/interfaces/card";
 import MultiActionAreaCard from "../components/serviceCard";
-import { useContext, useState } from "react";
+import { useContext, useEffect } from "react";
 import { ExpandedContext } from "../utils/expanded_context";
-import { useSelector, useDispatch } from "react-redux";
-import { dismissPatient, selectPatient } from "../redux/patientSlice";
-import Form from "react-bootstrap/Form";
+import { useDispatch } from "react-redux";
+import { selectPatient } from "../redux/patientSlice";
 import { useAuth } from "../components/AuthProvider";
-import { Navigate, useNavigate } from "react-router-dom";
-import { Alert, Snackbar } from "@mui/material";
+import { Navigate } from "react-router-dom";
+import PatientInfo from "../components/PatientInfo";
+import {
+  resetCurrentRequest,
+  updateIsProcess,
+} from "../redux/currentStateSlice";
+import { SELECTED_PATIENT_ID } from "../constants/localStorageVariables";
+import { clearLocalStorageForPAPrococess } from "../utils/clearLocalStorage";
+import { Box, Typography } from "@mui/material";
 
 function ServiceCardList({ services, expanded }: ServiceCardListProps) {
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         display: "grid",
-        gridTemplateColumns: expanded ? "repeat(1, 1fr)" : "repeat(3, 1fr)",
-        gap: "20px",
+        gridTemplateColumns: expanded
+          ? "minmax(0, 1fr)"
+          : {
+              xs: "minmax(0, 1fr)",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(3, minmax(0, 1fr))",
+            },
+        gap: { xs: 2.5, md: 3 },
+        width: "100%",
       }}
     >
       {services.map((service, index) => (
@@ -46,136 +57,84 @@ function ServiceCardList({ services, expanded }: ServiceCardListProps) {
           path={service.path}
         />
       ))}
-    </div>
+    </Box>
   );
 }
 
 const DetailsDiv = () => {
   const dispatch = useDispatch();
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const [alertSeverity, setAlertSeverity] = useState<
-    "error" | "warning" | "info" | "success"
-  >("info");
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const navigate = useNavigate();
 
-  const savedPatientId = localStorage.getItem("selectedPatientId");
-  console.log("savedPatientId", savedPatientId);
-  if (savedPatientId) {
-    dispatch(selectPatient(savedPatientId));
-  }
-
-  const selectedPatientId = useSelector(
-    (state: any) => state.patient.selectedPatientId
-  );
-  let currentPatient = PATIENT_DETAILS.find(
-    (patient) => patient.id === selectedPatientId
-  );
-
-  if (!currentPatient) {
-    currentPatient = PATIENT_DETAILS[0];
-  }
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
+  useEffect(() => {
+    const savedPatientId = localStorage.getItem(SELECTED_PATIENT_ID);
+    if (savedPatientId) {
+      dispatch(selectPatient(savedPatientId));
+    }
+  }, [dispatch]);
 
   return (
-    <div style={{ display: "flex", gap: "20px" }}>
-      <Form.Group
-        controlId="formPatientName"
-        style={{ marginTop: "20px", flex: "1 1 35%" }}
-      >
-        <Form.Label>Patient Name</Form.Label>
-        <Form.Control
-          type="text"
-          value={
-            currentPatient.name &&
-            currentPatient.name[0] &&
-            currentPatient.name[0].given &&
-            currentPatient.name[0].given[0] +
-              " " +
-              currentPatient.name[0].family
-          }
-          disabled
-        />
-      </Form.Group>
-      <Form.Group
-        controlId="formPatientID"
-        style={{ marginTop: "20px", flex: "1 1 35%" }}
-      >
-        <Form.Label>Patient ID</Form.Label>
-        <Form.Control type="text" value={currentPatient.id} disabled />
-      </Form.Group>
-      <div
-        style={{
-          flex: "1 1 10%",
-        }}
-      ></div>
-      <Button
-        onClick={() => {
-          dispatch(dismissPatient());
-          setAlertMessage("Patient Dismissed");
-          setAlertSeverity("success");
-          setOpenSnackbar(true);
-          navigate("/");
-        }}
-        variant="contained"
-        style={{
-          borderRadius: "50px",
-          backgroundColor: DARK_RED_COLOR,
-          height: "fit-content",
-          alignSelf: "center",
-          flex: "1 1 20%",
-          marginTop: "50px",
-        }}
-      >
-        Dismiss Patient
-      </Button>
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={alertSeverity}>
-          {alertMessage}
-        </Alert>
-      </Snackbar>
-    </div>
+    <Box sx={{ mb: 1 }}>
+      <PatientInfo />
+    </Box>
   );
 };
 
 function PractitionerDashBoard() {
   const { isAuthenticated } = useAuth();
   const { expanded } = useContext(ExpandedContext);
-  const selectedPatientId = useSelector(
-    (state: any) => state.patient.selectedPatientId
-  );
-  let currentPatient = PATIENT_DETAILS.find(
-    (patient) => patient.id === selectedPatientId
-  );
+  const dispatch = useDispatch();
 
-  if (!currentPatient) {
-    currentPatient = PATIENT_DETAILS[0];
-  }
+  useEffect(() => {
+    dispatch(resetCurrentRequest());
+    dispatch(updateIsProcess(false));
+    clearLocalStorageForPAPrococess();
+  }, [dispatch]);
 
   return isAuthenticated ? (
-    <div style={{ marginLeft: 50, marginBottom: 50 }}>
+    <Box
+      component="main"
+      sx={{
+        width: "100%",
+        maxWidth: 1180,
+        mx: "auto",
+        px: { xs: 2, sm: 3, md: 4 },
+        pb: 6,
+        pt: { xs: 1, md: 2 },
+      }}
+    >
       <DetailsDiv />
-      <div
-        style={{
-          display: "flex",
-          flexDirection: expanded ? "column" : "row",
-          alignItems: "center",
-          justifyContent: "space-between",
+
+      <Box
+        sx={{
+          mb: 3,
+          pb: 2.5,
+          borderBottom: "1px solid",
+          borderColor: "divider",
         }}
-      ></div>
-      <br />
-      <div className="page-heading">HealthCare HQ Services</div>
-      <div style={{ height: "5vh" }}>
-        <ServiceCardList services={SERVICE_CARD_DETAILS} expanded={expanded} />
-      </div>
-    </div>
+      >
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{
+            fontWeight: 800,
+            letterSpacing: "-0.03em",
+            color: "text.primary",
+            fontSize: { xs: "1.65rem", sm: "2rem" },
+          }}
+        >
+          E-Health Services
+        </Typography>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{ mt: 1, maxWidth: 640, lineHeight: 1.6 }}
+        >
+          Select a service to open the workflow. Your current patient context
+          is shown above.
+        </Typography>
+      </Box>
+
+      <ServiceCardList services={SERVICE_CARD_DETAILS} expanded={expanded} />
+    </Box>
   ) : (
     <Navigate to="/" replace />
   );

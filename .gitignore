@@ -24,6 +24,7 @@ hs_err_pid*
 replay_pid*
 
 .idea/
+.claude
 
 # maven target directories
 target
@@ -37,6 +38,7 @@ target
 *.iml
 *.iws
 *.ipr
+*.vscode/
 
 # ionic Ignore
 .sourcemaps/
@@ -65,5 +67,13 @@ node_modules/
 **/build/
 **/npm/
 **/dist/
-bulk-export/bulk-export-client/Config.toml
-bulk-export/bulk-export-client/tests/Config.toml
+**/.devcontainer.json
+**/.vite
+**/.ai
+
+#Claude
+CLAUDE.md
+
+# Local WSO2 platform downloaded by setup-platform.sh
+/platform/
+/services_logs/
